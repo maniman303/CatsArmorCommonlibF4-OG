@@ -55,6 +55,7 @@ private:
 		{
 			RE::BSScript::IVirtualMachine* vm;
 			uint32_t formId;
+            RE::TESObjectREFR* objectRef;
 		};
 
         if (objectRef == NULL)
@@ -76,10 +77,11 @@ private:
 
 		eventData.vm = vm;
 		eventData.formId = objectRef->GetFormID();
+        eventData.objectRef = objectRef;
 
 		papyrus->GetExternalEventRegistrations("HeadgearEquipEvent", &eventData, [](uint64_t handle, const char* scriptName, const char* callbackName, void* dataPtr) {
 			PapyrusEventData* d = static_cast<PapyrusEventData*>(dataPtr);
-			d->vm->DispatchMethodCall(handle, scriptName, callbackName, NULL, d->formId);
+			d->vm->DispatchMethodCall<uint32_t>(handle, scriptName, callbackName, NULL, d->formId);
 		});
 	}
 
