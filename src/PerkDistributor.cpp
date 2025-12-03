@@ -57,13 +57,51 @@ namespace PerkDistributor
         return IsNpcValid(npc, true);
     }
 
-    bool IsSpellIncluded(RE::SpellItem* spell, RE::TESSpellList::SpellData* spellList)
+    bool IsSpellIncluded(RE::SpellItem* spell, RE::TESNPC* npc)
     {
+        if (npc == NULL)
+        {
+            return false;
+        }
+
+        auto spellList = npc->GetSpellList();
+        if (spellList == NULL)
+        {
+            return true;
+        }
+
         for (uint32_t i = 0; i < spellList->numSpells; i++)
         {
             auto iter = spellList->spells[i];
 
             if (iter == spell)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool IsPerkIncluded(RE::BGSPerk* perk, RE::TESNPC* npc)
+    {
+        if (npc == NULL)
+        {
+            return false;
+        }
+
+        auto perks = npc->perks;
+        auto perkCount = npc->perkCount;
+        if (perks == NULL && perkCount > 0)
+        {
+            return false;
+        }
+
+        for (uint32_t i = 0; i < perkCount; i++)
+        {
+            auto iter = perks[i];
+
+            if (iter.perk == perk)
             {
                 return true;
             }
@@ -97,23 +135,16 @@ namespace PerkDistributor
 
         bool res = true;
 
-        if (npc->perks)
+        if (!npc->AddPerk(perk, 1) && !IsPerkIncluded(perk, npc))
         {
-            if (!npc->AddPerk(perk, 1))
-            {
-                REX::WARN(std::format("Failed to add perk to [{}].", npc->GetFullName()));
-                res = false;
-            }
+            REX::WARN(std::format("Failed to add perk to [{}].", npc->GetFullName()));
+            res = false;
         }
 
-        auto spellList = npc->GetSpellList();
-        if (spellList)
+        if (!npc->AddSpell(spell) && !IsSpellIncluded(spell, npc))
         {
-            if (!npc->AddSpell(spell) && !IsSpellIncluded(spell, spellList))
-            {
-                REX::WARN(std::format("Failed to add spell to [{}].", npc->GetFullName()));
-                res = false;
-            }
+            REX::WARN(std::format("Failed to add spell to [{}].", npc->GetFullName()));
+            res = false;
         }
 
         if (res)
