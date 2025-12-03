@@ -59,8 +59,6 @@ namespace PerkDistributor
 
     bool IsSpellIncluded(RE::SpellItem* spell, RE::TESSpellList::SpellData* spellList)
     {
-        bool res = false;
-
         for (uint32_t i = 0; i < spellList->numSpells; i++)
         {
             auto iter = spellList->spells[i];
@@ -71,7 +69,7 @@ namespace PerkDistributor
             }
         }
 
-        return res;
+        return false;
     }
 
     bool TryProcessNpc(RE::TESNPC* npc)
