@@ -115,7 +115,7 @@ private:
             return RE::BSEventNotifyControl::kContinue;
         }
 
-        REX::INFO("Send headgear event");
+        // REX::INFO("Send headgear event");
 
         SendHeadgearPapyrusEvent(actor);
 

@@ -57,6 +57,23 @@ namespace PerkDistributor
         return IsNpcValid(npc, true);
     }
 
+    bool IsSpellIncluded(RE::SpellItem* spell, RE::TESSpellList::SpellData* spellList)
+    {
+        bool res = false;
+
+        for (uint32_t i = 0; i < spellList->numSpells; i++)
+        {
+            auto iter = spellList->spells[i];
+
+            if (iter == spell)
+            {
+                return true;
+            }
+        }
+
+        return res;
+    }
+
     bool TryProcessNpc(RE::TESNPC* npc)
     {
         if (!IsNpcValid(npc))
@@ -82,21 +99,28 @@ namespace PerkDistributor
 
         bool res = true;
 
-        if (!npc->AddSpell(spell))
+        if (npc->perks)
         {
-            REX::WARN("Failed to add spell.");
-            res = false;
+            if (!npc->AddPerk(perk, 1))
+            {
+                REX::WARN(std::format("Failed to add perk to [{}].", npc->GetFullName()));
+                res = false;
+            }
         }
 
-        if (!npc->AddPerk(perk, 1))
+        auto spellList = npc->GetSpellList();
+        if (spellList)
         {
-            REX::WARN("Failed to add perk.");
-            res = false;
+            if (!npc->AddSpell(spell) && !IsSpellIncluded(spell, spellList))
+            {
+                REX::WARN(std::format("Failed to add spell to [{}].", npc->GetFullName()));
+                res = false;
+            }
         }
 
         if (res)
         {
-            // REX::INFO("Added spell and perk to [{}]", npc->GetFullName());
+            // REX::INFO(std::format("Added spell and perk to [{}]", npc->GetFullName()));
         }
 
         return res;
