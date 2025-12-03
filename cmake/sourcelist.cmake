@@ -1,0 +1,16 @@
+set(SOURCES
+	src/PCH.h
+	src/main.cpp
+	src/ActorEquipManagerListener.cpp
+	src/ArmorProcessor.cpp
+	src/Files.cpp
+	src/FormUtil.cpp
+	src/HeadgearProcessor.cpp
+	src/Hooks.cpp
+	src/PapyrusUtil.cpp
+	src/PerkDistributor.cpp
+	src/RexLogger.cpp
+	src/Setup.cpp
+	src/StringHelper.cpp
+	src/Workaround.cpp
+)
