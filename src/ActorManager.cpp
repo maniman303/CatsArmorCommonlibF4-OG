@@ -78,3 +78,47 @@ bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
 
     return false;
 }
+
+bool ActorManager::IsItemEquipped(RE::Actor* actor, RE::BGSObjectInstance instance)
+{
+    if (actor == NULL || instance.object == NULL)
+    {
+        return false;
+    }
+
+    for (auto itemData : actor->inventoryList->data)
+    {
+        auto object = itemData.object;
+        if (object == NULL || object != instance.object)
+        {
+            continue;
+        }
+
+        for (uint32_t i = 0; i < itemData.GetCount(); i++)
+        {
+            auto stack = itemData.GetStackByID(i);
+            if (stack == NULL)
+            {
+                continue;
+            }
+
+            if (!stack->IsEquipped())
+            {
+                continue;
+            }
+
+            if (!instance.instanceData)
+            {
+                return true;
+            }
+
+            auto expectedInstanceData = instance.instanceData.get();
+            if (itemData.GetInstanceData(i) == expectedInstanceData)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}

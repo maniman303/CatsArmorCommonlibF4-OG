@@ -83,17 +83,22 @@ private:
 		});
 	}
 
-    bool QuickProcessing(RE::Actor* actor, bool isUnequip)
+    bool QuickProcessing(RE::Actor* actor, RE::BGSObjectInstance armor, bool isUnequipEvent)
     {
         auto setup = Setup::GetForms("headgear");
 
         bool isVisibleHelmetWorn = ActorManager::WornHasKeyword(actor, setup.keyword) &&
             !ActorManager::WornHasKeyword(actor, setup.keywordHidden);
 
-        if (isVisibleHelmetWorn == isUnequip && !isUnequip)
+        bool isEquipped = ActorManager::IsItemEquipped(actor, armor);
+
+        if (!isUnequipEvent && !isEquipped)
         {
+            // Skip broken events
             return false;
         }
+
+        // REX::INFO(std::format("Analyze is visible: {0}, is unequip: {1}, is equipped: {2}, form id: {3}", isVisibleHelmetWorn, isUnequipEvent, isEquipped, armor.object->GetFormID()));
 
         auto instanceHairTop = RE::BGSObjectInstance(setup.armorHairTop, NULL);
         auto instanceHairLong = RE::BGSObjectInstance(setup.armorHairLong, NULL);
@@ -101,13 +106,15 @@ private:
 
         auto equipManager = RE::ActorEquipManager::GetSingleton();
 
-        if (!isVisibleHelmetWorn || isUnequip)
+        if (!isVisibleHelmetWorn || !isEquipped)
         {
             equipManager->UnequipObject(actor, &instanceHairTop, 1, NULL, 0, true, true, false, true, NULL);
             equipManager->UnequipObject(actor, &instanceHairLong, 1, NULL, 0, true, true, false, true, NULL);
             equipManager->UnequipObject(actor, &instanceHairBeard, 1, NULL, 0, true, true, false, true, NULL);
 
-            return !isUnequip;
+            actor->Reset3D(true, 0, true, 0xC);
+
+            return isUnequipEvent != isEquipped;
         }
 
         bool res = true;
@@ -127,7 +134,9 @@ private:
             res = res && equipManager->EquipObject(actor, instanceHairBeard, 0, 1, NULL, true, true, false, true, true);
         }
 
-        return res;
+        actor->Reset3D(true, 0, true, 0xC);
+
+        return res && (isUnequipEvent != isEquipped);
     }
 
     RE::BSEventNotifyControl ProcessEvent(const RE::ActorEquipManagerEvent::Event& aEvent, RE::BSTEventSource<RE::ActorEquipManagerEvent::Event>*) override
@@ -164,7 +173,7 @@ private:
 
         // REX::INFO("Send headgear event");
 
-        if (!QuickProcessing(actor, aEvent.isUnequip > 0))
+        if (!QuickProcessing(actor, *itemInstance, aEvent.changeType.get() == RE::ActorEquipManagerEvent::Type::kUnequip))
         {
             SendHeadgearPapyrusEvent(actor);
         }
