@@ -2,6 +2,7 @@ set(SOURCES
 	src/PCH.h
 	src/main.cpp
 	src/ActorEquipManagerListener.cpp
+	src/ActorManager.cpp
 	src/ArmorProcessor.cpp
 	src/Files.cpp
 	src/FormUtil.cpp

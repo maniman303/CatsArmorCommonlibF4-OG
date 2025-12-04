@@ -3,6 +3,7 @@
 #include "PapyrusUtil.h"
 #include "Setup.h"
 #include "Files.h"
+#include "ActorManager.h"
 
 class ActorEquipManagerSink : public RE::BSTEventSink<RE::ActorEquipManagerEvent::Event>
 {
@@ -33,12 +34,9 @@ private:
 			return NULL;
 		}
 
-        uint32_t hairTopMask = 1;
-		uint32_t hairLongMask = 2;
-		uint32_t hairBeardMask = 1 << 18;
 		uint32_t headbandMask = 1 << 16;
 
-        uint32_t mask = hairTopMask | hairLongMask | hairBeardMask | headbandMask;
+        uint32_t mask = headbandMask;
 
         auto bipedSlots = armor->bipedModelData.bipedObjectSlots;
         if ((bipedSlots & mask) == 0)
@@ -85,6 +83,53 @@ private:
 		});
 	}
 
+    bool QuickProcessing(RE::Actor* actor, bool isUnequip)
+    {
+        auto setup = Setup::GetForms("headgear");
+
+        bool isVisibleHelmetWorn = ActorManager::WornHasKeyword(actor, setup.keyword) &&
+            !ActorManager::WornHasKeyword(actor, setup.keywordHidden);
+
+        if (isVisibleHelmetWorn == isUnequip && !isUnequip)
+        {
+            return false;
+        }
+
+        auto instanceHairTop = RE::BGSObjectInstance(setup.armorHairTop, NULL);
+        auto instanceHairLong = RE::BGSObjectInstance(setup.armorHairLong, NULL);
+        auto instanceHairBeard = RE::BGSObjectInstance(setup.armorHairBeard, NULL);
+
+        auto equipManager = RE::ActorEquipManager::GetSingleton();
+
+        if (!isVisibleHelmetWorn || isUnequip)
+        {
+            equipManager->UnequipObject(actor, &instanceHairTop, 1, NULL, 0, true, true, false, true, NULL);
+            equipManager->UnequipObject(actor, &instanceHairLong, 1, NULL, 0, true, true, false, true, NULL);
+            equipManager->UnequipObject(actor, &instanceHairBeard, 1, NULL, 0, true, true, false, true, NULL);
+
+            return !isUnequip;
+        }
+
+        bool res = true;
+
+        if (ActorManager::WornHasKeyword(actor, setup.keywordHairTop))
+        {
+            res = res && equipManager->EquipObject(actor, instanceHairTop, 0, 1, NULL, true, true, false, true, true);
+        }
+
+        if (ActorManager::WornHasKeyword(actor, setup.keywordHairLong))
+        {
+            res = res && equipManager->EquipObject(actor, instanceHairLong, 0, 1, NULL, true, true, false, true, true);
+        }
+
+        if (ActorManager::WornHasKeyword(actor, setup.keywordHairBeard))
+        {
+            res = res && equipManager->EquipObject(actor, instanceHairBeard, 0, 1, NULL, true, true, false, true, true);
+        }
+
+        return res;
+    }
+
     RE::BSEventNotifyControl ProcessEvent(const RE::ActorEquipManagerEvent::Event& aEvent, RE::BSTEventSource<RE::ActorEquipManagerEvent::Event>*) override
     {
         if (!Files::IsFilePresent() || !Setup::IsInitialized())
@@ -119,7 +164,10 @@ private:
 
         // REX::INFO("Send headgear event");
 
-        SendHeadgearPapyrusEvent(actor);
+        if (!QuickProcessing(actor, aEvent.isUnequip > 0))
+        {
+            SendHeadgearPapyrusEvent(actor);
+        }
 
         return RE::BSEventNotifyControl::kContinue;
     }
