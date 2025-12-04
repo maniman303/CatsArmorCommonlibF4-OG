@@ -83,62 +83,6 @@ private:
 		});
 	}
 
-    bool QuickProcessing(RE::Actor* actor, RE::BGSObjectInstance armor, bool isUnequipEvent)
-    {
-        auto setup = Setup::GetForms("headgear");
-
-        bool isVisibleHelmetWorn = ActorManager::WornHasKeyword(actor, setup.keyword) &&
-            !ActorManager::WornHasKeyword(actor, setup.keywordHidden);
-
-        bool isEquipped = ActorManager::IsItemEquipped(actor, armor);
-
-        if (!isUnequipEvent && !isEquipped)
-        {
-            // Skip broken events
-            return false;
-        }
-
-        // REX::INFO(std::format("Analyze is visible: {0}, is unequip: {1}, is equipped: {2}, form id: {3}", isVisibleHelmetWorn, isUnequipEvent, isEquipped, armor.object->GetFormID()));
-
-        auto instanceHairTop = RE::BGSObjectInstance(setup.armorHairTop, NULL);
-        auto instanceHairLong = RE::BGSObjectInstance(setup.armorHairLong, NULL);
-        auto instanceHairBeard = RE::BGSObjectInstance(setup.armorHairBeard, NULL);
-
-        auto equipManager = RE::ActorEquipManager::GetSingleton();
-
-        if (!isVisibleHelmetWorn || !isEquipped)
-        {
-            equipManager->UnequipObject(actor, &instanceHairTop, 1, NULL, 0, true, true, false, true, NULL);
-            equipManager->UnequipObject(actor, &instanceHairLong, 1, NULL, 0, true, true, false, true, NULL);
-            equipManager->UnequipObject(actor, &instanceHairBeard, 1, NULL, 0, true, true, false, true, NULL);
-
-            actor->Reset3D(true, 0, true, 0xC);
-
-            return isUnequipEvent != isEquipped;
-        }
-
-        bool res = true;
-
-        if (ActorManager::WornHasKeyword(actor, setup.keywordHairTop))
-        {
-            res = res && equipManager->EquipObject(actor, instanceHairTop, 0, 1, NULL, true, true, false, true, true);
-        }
-
-        if (ActorManager::WornHasKeyword(actor, setup.keywordHairLong))
-        {
-            res = res && equipManager->EquipObject(actor, instanceHairLong, 0, 1, NULL, true, true, false, true, true);
-        }
-
-        if (ActorManager::WornHasKeyword(actor, setup.keywordHairBeard))
-        {
-            res = res && equipManager->EquipObject(actor, instanceHairBeard, 0, 1, NULL, true, true, false, true, true);
-        }
-
-        actor->Reset3D(true, 0, true, 0xC);
-
-        return res && (isUnequipEvent != isEquipped);
-    }
-
     RE::BSEventNotifyControl ProcessEvent(const RE::ActorEquipManagerEvent::Event& aEvent, RE::BSTEventSource<RE::ActorEquipManagerEvent::Event>*) override
     {
         if (!Files::IsFilePresent() || !Setup::IsInitialized())
@@ -173,7 +117,7 @@ private:
 
         // REX::INFO("Send headgear event");
 
-        if (!QuickProcessing(actor, *itemInstance, aEvent.changeType.get() == RE::ActorEquipManagerEvent::Type::kUnequip))
+        if (!ActorManager::ProcessHairStubs(actor, *itemInstance, aEvent.changeType.get() == RE::ActorEquipManagerEvent::Type::kUnequip))
         {
             SendHeadgearPapyrusEvent(actor);
         }
