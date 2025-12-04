@@ -34,9 +34,12 @@ private:
 			return NULL;
 		}
 
+		uint32_t hairTopMask = 1;
+		uint32_t hairLongMask = 2;
+		uint32_t hairBeardMask = 1 << 18;
 		uint32_t headbandMask = 1 << 16;
 
-        uint32_t mask = headbandMask;
+        uint32_t mask = hairTopMask | hairLongMask | hairBeardMask | headbandMask;
 
         auto bipedSlots = armor->bipedModelData.bipedObjectSlots;
         if ((bipedSlots & mask) == 0)
