@@ -186,6 +186,17 @@ namespace HeadgearProcessor
 		}
 	}
 
+	bool ValidateHeadgear(RE::TESObjectARMO* armor)
+	{
+		uint32_t hairTopMask = 1;
+		uint32_t hairLongMask = 2;
+		uint32_t mask = hairTopMask | hairLongMask;
+
+		auto bipedSlots = armor->bipedModelData.bipedObjectSlots;
+
+		return (bipedSlots & mask) > 0;
+	}
+
 	void ProcessHeadgearForm(RE::TESForm* form, Setup::TypedSetup setup)
 	{
 		if (form == NULL)
@@ -199,6 +210,12 @@ namespace HeadgearProcessor
 		}
 
 		auto armor = form->As<RE::TESObjectARMO>();
+
+		if (!ValidateHeadgear(armor))
+		{
+			REX::WARN(std::format("Headgear [{0}] with id 0x{1:X} does not take hair slots.", armor->GetFullName(), armor->GetFormID()));
+			return;
+		}
 
 		auto keywordsToAdd = SetArmorBipedIndexes(armor, setup);
 
