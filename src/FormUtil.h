@@ -1,23 +1,41 @@
 #pragma once
 
 #include <json/json.h>
+#include <unordered_set>
 #include "pch.h"
 
 namespace FormUtil
 {
-	RE::TESForm* GetFormFromMod(std::string modname, uint32_t formid);
+	template <class T>
+	T* GetFormAs(uint32_t id)
+	{
+		auto form = RE::TESForm::GetFormByID(id);
+		if (form == NULL)
+		{
+			return NULL;
+		}
 
-	RE::TESForm* GetFormFromMod(std::string modname, uint32_t formid, RE::ENUM_FORM_ID type);
+		if (!form->Is<T>())
+		{
+			return NULL;
+		}
 
-	RE::TESForm* GetFormFromString(std::string key, RE::ENUM_FORM_ID type);
+		return form->As<T>();
+	}
 
-	RE::TESForm* GetFormFromJson(Json::Value container, RE::ENUM_FORM_ID type);
+	uint32_t GetFormId(std::string modname, uint32_t formid);
 
-	std::vector<RE::TESForm*> GetFormsFromJson(Json::Value container, RE::ENUM_FORM_ID type);
+	uint32_t GetFormIdFromJson(Json::Value container);
 
-	std::vector<RE::TESForm*> GetFormsFromFormListJson(Json::Value container, RE::ENUM_FORM_ID type);
+	std::vector<uint32_t> GetFormIdsFromJson(Json::Value container, bool& isAnyMissing);
+
+	std::vector<uint32_t> GetFormIdsFromJson(Json::Value container);
 
 	uint32_t GetItemCount(RE::TESObjectREFR* container, RE::TESForm* itemBase);
 
 	std::string GetHexFormId(int id);
+
+	std::unordered_set<uint32_t> MapToSet(std::vector<uint32_t> vec);
+
+	std::vector<RE::TESForm*> GetFormsFromList(std::vector<uint32_t> formIds);
 }

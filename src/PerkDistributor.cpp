@@ -12,7 +12,9 @@ namespace PerkDistributor
             return false;
         }
 
-        auto humanRace = FormUtil::GetFormFromMod("Fallout4.esm", 0x00013746);
+        auto humanRaceId = FormUtil::GetFormId("Fallout4.esm", 0x00013746);
+        auto humanRace = FormUtil::GetFormAs<RE::TESRace>(humanRaceId);
+        
         if (race == humanRace)
         {
             return true;

@@ -279,7 +279,8 @@ namespace HeadgearProcessor
 		auto hairLongKywd = setupForms.keywordHairLong;
 		auto hairBearKywd = setupForms.keywordHairBeard;
 
-		auto forms = FormUtil::GetFormsFromFormListJson(modJson["armorList"], RE::ENUM_FORM_ID::kARMO);
+		auto formIds = FormUtil::GetFormIdsFromJson(modJson["armorList"]);
+		auto forms = FormUtil::GetFormsFromList(formIds);
 
 		if (keyword == NULL || attachSlot == NULL || addon == NULL || hairTopKywd == NULL || hairLongKywd == NULL || hairBearKywd == NULL || forms.empty())
 		{

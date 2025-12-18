@@ -121,18 +121,21 @@ namespace Setup
 			return false;
 		}
 
-		auto keyword = FormUtil::GetFormFromJson(typedSetup["keywordToAdd"], RE::ENUM_FORM_ID::kKYWD);
-		if (keyword == NULL || keyword->GetFormType() != RE::ENUM_FORM_ID::kKYWD) {
+		auto keywordId = FormUtil::GetFormIdFromJson(typedSetup["keywordToAdd"]);
+		auto keyword = FormUtil::GetFormAs<RE::BGSKeyword>(keywordId);
+		if (keyword == NULL) {
 			return false;
 		}
 
-		auto attachSlot = FormUtil::GetFormFromJson(typedSetup["attachSlotToAdd"], RE::ENUM_FORM_ID::kKYWD);
-		if (attachSlot == NULL || attachSlot->GetFormType() != RE::ENUM_FORM_ID::kKYWD) {
+		auto attachSlotId = FormUtil::GetFormIdFromJson(typedSetup["attachSlotToAdd"]);
+		auto attachSlot = FormUtil::GetFormAs<RE::BGSKeyword>(attachSlotId);
+		if (attachSlot == NULL) {
 			return false;
 		}
 
-		auto armorAddon = FormUtil::GetFormFromJson(typedSetup["armorAddon"], RE::ENUM_FORM_ID::kARMA);
-		if (armorAddon == NULL || armorAddon->GetFormType() != RE::ENUM_FORM_ID::kARMA) {
+		auto armorAddonId = FormUtil::GetFormIdFromJson(typedSetup["armorAddon"]);
+		auto armorAddon = FormUtil::GetFormAs<RE::TESObjectARMA>(armorAddonId);
+		if (armorAddon == NULL) {
 			return false;
 		}
 
@@ -163,53 +166,63 @@ namespace Setup
 			REX::WARN(std::format("Custom biped index set to: {}.", bipedIndex));
 		}
 
-		auto keyword = FormUtil::GetFormFromJson(typedSetup["keywordToAdd"], RE::ENUM_FORM_ID::kKYWD);
-		if (keyword == NULL || keyword->GetFormType() != RE::ENUM_FORM_ID::kKYWD) {
+		auto keywordId = FormUtil::GetFormIdFromJson(typedSetup["keywordToAdd"]);
+		auto keyword = FormUtil::GetFormAs<RE::BGSKeyword>(keywordId);
+		if (keyword == NULL) {
 			return false;
 		}
 
-		auto keywordHidden = FormUtil::GetFormFromJson(typedSetup["keywordHidden"], RE::ENUM_FORM_ID::kKYWD);
-		if (keywordHidden == NULL || keywordHidden->GetFormType() != RE::ENUM_FORM_ID::kKYWD) {
+		auto keywordHiddenId = FormUtil::GetFormIdFromJson(typedSetup["keywordHidden"]);
+		auto keywordHidden = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHiddenId);
+		if (keywordHidden == NULL) {
 			return false;
 		}
 
-		auto attachSlot = FormUtil::GetFormFromJson(typedSetup["attachSlotToAdd"], RE::ENUM_FORM_ID::kKYWD);
-		if (attachSlot == NULL || attachSlot->GetFormType() != RE::ENUM_FORM_ID::kKYWD) {
+		auto attachSlotId = FormUtil::GetFormIdFromJson(typedSetup["attachSlotToAdd"]);
+		auto attachSlot = FormUtil::GetFormAs<RE::BGSKeyword>(attachSlotId);
+		if (attachSlot == NULL) {
 			return false;
 		}
 
-		auto armorAddon = FormUtil::GetFormFromJson(typedSetup["armorAddon"], RE::ENUM_FORM_ID::kARMA);
-		if (armorAddon == NULL || armorAddon->GetFormType() != RE::ENUM_FORM_ID::kARMA) {
+		auto armorAddonId = FormUtil::GetFormIdFromJson(typedSetup["armorAddon"]);
+		auto armorAddon = FormUtil::GetFormAs<RE::TESObjectARMA>(armorAddonId);
+		if (armorAddon == NULL) {
 			return false;
 		}
 
-		auto keywordHairLong = FormUtil::GetFormFromJson(typedSetup["keywordHairLong"], RE::ENUM_FORM_ID::kKYWD);
-		if (keywordHairLong == NULL || keywordHairLong->GetFormType() != RE::ENUM_FORM_ID::kKYWD) {
+		auto keywordHairLongId = FormUtil::GetFormIdFromJson(typedSetup["keywordHairLong"]);
+		auto keywordHairLong = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHairLongId);
+		if (keywordHairLong == NULL) {
 			return false;
 		}
 
-		auto keywordHairTop = FormUtil::GetFormFromJson(typedSetup["keywordHairTop"], RE::ENUM_FORM_ID::kKYWD);
-		if (keywordHairTop == NULL || keywordHairTop->GetFormType() != RE::ENUM_FORM_ID::kKYWD) {
+		auto keywordHairTopId = FormUtil::GetFormIdFromJson(typedSetup["keywordHairTop"]);
+		auto keywordHairTop = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHairTopId);
+		if (keywordHairTop == NULL) {
 			return false;
 		}
 
-		auto keywordHairBeard = FormUtil::GetFormFromJson(typedSetup["keywordHairBeard"], RE::ENUM_FORM_ID::kKYWD);
-		if (keywordHairBeard == NULL || keywordHairBeard->GetFormType() != RE::ENUM_FORM_ID::kKYWD) {
+		auto keywordHairBeardId = FormUtil::GetFormIdFromJson(typedSetup["keywordHairBeard"]);
+		auto keywordHairBeard = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHairBeardId);
+		if (keywordHairBeard == NULL) {
 			return false;
 		}
 
-		auto armorHairLong = FormUtil::GetFormFromJson(typedSetup["armorHairLong"], RE::ENUM_FORM_ID::kARMO);
-		if (armorHairLong == NULL || armorHairLong->GetFormType() != RE::ENUM_FORM_ID::kARMO) {
+		auto armorHairLongId = FormUtil::GetFormIdFromJson(typedSetup["armorHairLong"]);
+		auto armorHairLong = FormUtil::GetFormAs<RE::TESObjectARMO>(armorHairLongId);
+		if (armorHairLong == NULL) {
 			return false;
 		}
 
-		auto armorHairTop = FormUtil::GetFormFromJson(typedSetup["armorHairTop"], RE::ENUM_FORM_ID::kARMO);
-		if (armorHairTop == NULL || armorHairTop->GetFormType() != RE::ENUM_FORM_ID::kARMO) {
+		auto armorHairTopId = FormUtil::GetFormIdFromJson(typedSetup["armorHairTop"]);
+		auto armorHairTop = FormUtil::GetFormAs<RE::TESObjectARMO>(armorHairTopId);
+		if (armorHairTop == NULL) {
 			return false;
 		}
 
-		auto armorHairBeard = FormUtil::GetFormFromJson(typedSetup["armorHairBeard"], RE::ENUM_FORM_ID::kARMO);
-		if (armorHairBeard == NULL || armorHairBeard->GetFormType() != RE::ENUM_FORM_ID::kARMO) {
+		auto armorHairBeardId = FormUtil::GetFormIdFromJson(typedSetup["armorHairBeard"]);
+		auto armorHairBeard = FormUtil::GetFormAs<RE::TESObjectARMO>(armorHairBeardId);
+		if (armorHairBeard == NULL) {
 			return false;
 		}
 
@@ -232,14 +245,16 @@ namespace Setup
 			return false;
 		}
 
-		auto spell = FormUtil::GetFormFromJson(magicSetup["spell"], RE::ENUM_FORM_ID::kSPEL);
-		if (spell == NULL || spell->GetFormType() != RE::ENUM_FORM_ID::kSPEL) {
+		auto spellId = FormUtil::GetFormIdFromJson(magicSetup["spell"]);
+		auto spell = FormUtil::GetFormAs<RE::SpellItem>(spellId);
+		if (spell == NULL) {
 			REX::WARN("Magic setup is missing spell.");
 			return false;
 		}
 
-		auto perk = FormUtil::GetFormFromJson(magicSetup["perk"], RE::ENUM_FORM_ID::kPERK);
-		if (perk == NULL || perk->GetFormType() != RE::ENUM_FORM_ID::kPERK) {
+		auto perkId = FormUtil::GetFormIdFromJson(magicSetup["perk"]);
+		auto perk = FormUtil::GetFormAs<RE::BGSPerk>(perkId);
+		if (perk == NULL) {
 			REX::WARN("Magic setup is missing perk.");
 			return false;
 		}
@@ -260,15 +275,14 @@ namespace Setup
 			return false;
 		}
 
-		auto form = FormUtil::GetFormFromJson(actorSetup, RE::ENUM_FORM_ID::kKYWD);
+		auto formId = FormUtil::GetFormIdFromJson(actorSetup);
+		auto form = FormUtil::GetFormAs<RE::BGSKeyword>(formId);
 
 		if (form == NULL) {
 			return false;
 		}
 
-		auto kywd = form->As<RE::BGSKeyword>();
-
-		ActorKywd = kywd;
+		ActorKywd = form;
 
 		return true;
 	}
@@ -281,16 +295,15 @@ namespace Setup
 			return;
 		}
 
-		auto armor = FormUtil::GetFormFromJson(workaroundSetup, RE::ENUM_FORM_ID::kARMO);
+		auto armorId = FormUtil::GetFormIdFromJson(workaroundSetup);
+		auto armor = FormUtil::GetFormAs<RE::TESObjectARMO>(armorId);
 
 		if (armor == NULL) {
 			REX::WARN("Workaround setup has invalid item.");
 			return;
 		}
 
-		auto form = armor->As<RE::TESObjectARMO>();
-
-		if (form->attachParents.size != 6) {
+		if (armor->attachParents.size != 6) {
 			REX::WARN("Workaround armor has invalid amount of attach parent slots.");
 			return;
 		}
@@ -301,14 +314,14 @@ namespace Setup
 		auto leftLegKeyword = SetupMap["leftLeg"].attachSlot->GetFormID();
 		auto rightLegKeyword = SetupMap["rightLeg"].attachSlot->GetFormID();
 
-		WorkaroundMap[torsoKeyword] = form->attachParents.array[0].keywordIndex;
-		WorkaroundMap[leftArmKeyword] = form->attachParents.array[1].keywordIndex;
-		WorkaroundMap[rightArmKeyword] = form->attachParents.array[2].keywordIndex;
-		WorkaroundMap[leftLegKeyword] = form->attachParents.array[3].keywordIndex;
-		WorkaroundMap[rightLegKeyword] = form->attachParents.array[4].keywordIndex;
+		WorkaroundMap[torsoKeyword] = armor->attachParents.array[0].keywordIndex;
+		WorkaroundMap[leftArmKeyword] = armor->attachParents.array[1].keywordIndex;
+		WorkaroundMap[rightArmKeyword] = armor->attachParents.array[2].keywordIndex;
+		WorkaroundMap[leftLegKeyword] = armor->attachParents.array[3].keywordIndex;
+		WorkaroundMap[rightLegKeyword] = armor->attachParents.array[4].keywordIndex;
 
 		if (SetupMap.contains("headgear") && SetupMap["headgear"].attachSlot != NULL) {
-			WorkaroundMap[SetupMap["headgear"].attachSlot->GetFormID()] = form->attachParents.array[5].keywordIndex;
+			WorkaroundMap[SetupMap["headgear"].attachSlot->GetFormID()] = armor->attachParents.array[5].keywordIndex;
 		}
 	}
 

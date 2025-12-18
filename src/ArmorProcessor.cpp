@@ -134,7 +134,8 @@ namespace ArmorProcessor
 		auto attachSlot = setupForms.attachSlot;
 		auto addon = setupForms.armorAddon;
 
-		auto forms = FormUtil::GetFormsFromFormListJson(modJson["armorList"], RE::ENUM_FORM_ID::kARMO);
+		auto formIds = FormUtil::GetFormIdsFromJson(modJson["armorList"]);
+		auto forms = FormUtil::GetFormsFromList(formIds);
 
 		if (keyword == NULL || attachSlot == NULL || addon == NULL || forms.empty())
 		{

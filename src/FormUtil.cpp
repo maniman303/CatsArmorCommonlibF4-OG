@@ -2,10 +2,10 @@
 
 namespace FormUtil
 {
-	RE::TESForm* GetFormFromMod(std::string modname, uint32_t formid)
+	uint32_t GetFormId(std::string modname, uint32_t formid)
 	{
 		if (!modname.length() || !formid) {
-			return NULL;
+			return 0;
 		}
 
 		uint32_t id = formid;
@@ -17,8 +17,7 @@ namespace FormUtil
 			auto lightModIndexOpt = dh->GetLoadedLightModIndex(modname);
 
 			if (!lightModIndexOpt.has_value()) {
-				REX::INFO(std::format("Mod '{0}' is not loaded.", modname));
-				return NULL;
+				return 0;
 			}
 
 			uint16_t lightModIndex = lightModIndexOpt.value();
@@ -30,37 +29,21 @@ namespace FormUtil
 			id |= ((uint32_t)modIndex) << 24;
 		}
 
-		return RE::TESForm::GetFormByID(id);
+		return id;
 	}
 
-	RE::TESForm* GetFormFromMod(std::string modname, uint32_t formid, RE::ENUM_FORM_ID type)
-	{
-		auto form = GetFormFromMod(modname, formid);
-
-		if (form == NULL) {
-			return NULL;
-		}
-
-		if (form->GetFormType() != type) {
-			REX::INFO("Form has wrong type.");
-			return NULL;
-		}
-
-		return form;
-	}
-
-	RE::TESForm* GetFormFromString(std::string key, RE::ENUM_FORM_ID type)
+	uint32_t GetFormIdFromString(std::string key)
 	{
 		if (key.empty()) {
 			REX::INFO("Key is empty.");
-			return NULL;
+			return 0;
 		}
 
 		auto splits = StringHelper::SplitString(key, '|');
 
 		if (splits.size() != 2) {
 			REX::INFO(std::format("Invalid form key {0}.", key));
-			return NULL;
+			return 0;
 		}
 
 		auto modName = splits.front();
@@ -69,30 +52,19 @@ namespace FormUtil
 		auto formIdHex = splits.front();
 		int formId = std::stoi(formIdHex, 0, 16);
 
-		auto form = GetFormFromMod(modName, formId);
-
-		if (form == NULL) {
-			REX::INFO(std::format("Form from mod {0} with id {1} doesn't exists.", modName, formId));
-			return NULL;
-		}
-
-		if (form->GetFormType() != type) {
-			REX::INFO("Form has wrong type.");
-			return NULL;
-		}
+		auto form = GetFormId(modName, formId);
 
 		return form;
 	}
 
-	RE::TESForm* GetFormFromJson(Json::Value container, RE::ENUM_FORM_ID type)
+	uint32_t GetFormIdFromJson(Json::Value container)
 	{
 		if (container.empty()) {
-			REX::INFO("Empty json.");
 			return NULL;
 		}
 
 		if (container.isString()) {
-			return GetFormFromString(container.asString(), type);
+			return GetFormIdFromString(container.asString());
 		}
 
 		auto keys = container.getMemberNames();
@@ -105,21 +77,21 @@ namespace FormUtil
 			}
 
 			auto formId = formIdValue.asInt();
-			auto form = GetFormFromMod(key, formId, type);
+			auto form = GetFormId(key, formId);
 
-			if (form != NULL) {
+			if (form != 0) {
 				return form;
 			}
 		}
 
-		REX::INFO("Could not find matching form.");
-
-		return NULL;
+		return 0;
 	}
 
-	std::vector<RE::TESForm*> GetFormsFromJson(Json::Value container, RE::ENUM_FORM_ID type)
+	std::vector<uint32_t> GetFormIdsFromJson(Json::Value container, bool& isAnyMissing)
 	{
-		std::vector<RE::TESForm*> result;
+		isAnyMissing = false;
+
+		std::vector<uint32_t> result;
 
 		if (container.empty())
 		{
@@ -128,9 +100,11 @@ namespace FormUtil
 
 		if (container.isString())
 		{
-			auto stringForm = GetFormFromString(container.asString(), type);
+			auto stringForm = GetFormIdFromString(container.asString());
 
-			if (stringForm == NULL) {
+			if (stringForm == 0) {
+				isAnyMissing = true;
+				REX::WARN(std::format("Could not find [{0}] form id.", container.asString()));
 				return result;
 			}
 
@@ -147,9 +121,11 @@ namespace FormUtil
 					continue;
 				}
 
-				auto stringForm = GetFormFromString(value.asString(), type);
+				auto stringForm = GetFormIdFromString(value.asString());
 
-				if (stringForm == NULL) {
+				if (stringForm == 0) {
+					isAnyMissing = true;
+					REX::WARN(std::format("Could not find [{0}] form id.", value.asString()));
 					continue;
 				}
 
@@ -171,9 +147,9 @@ namespace FormUtil
 			}
 
 			auto formId = formIdValue.asInt();
-			auto form = GetFormFromMod(key, formId, type);
+			auto form = GetFormId(key, formId);
 
-			if (form != NULL)
+			if (form != 0)
 			{
 				result.push_back(form);
 			}
@@ -182,37 +158,11 @@ namespace FormUtil
 		return result;
 	}
 
-	std::vector<RE::TESForm*> GetFormsFromFormListJson(Json::Value container, RE::ENUM_FORM_ID type)
+	std::vector<uint32_t> GetFormIdsFromJson(Json::Value container)
 	{
-		std::vector<RE::TESForm*> result;
-		auto formLists = GetFormsFromJson(container, RE::ENUM_FORM_ID::kFLST);
+		bool isAnyMissing;
 
-		for (auto& formList: formLists)
-		{
-			if (formList == NULL || formList->GetFormType() != RE::ENUM_FORM_ID::kFLST)
-			{
-				continue;
-			}
-
-			auto list = formList->As<RE::BGSListForm>();
-
-			for (auto& form : list->arrayOfForms)
-			{
-				if (form == NULL)
-				{
-					continue;
-				}
-
-				if (form->GetFormType() != type)
-				{
-					continue;
-				}
-
-				result.push_back(form);
-			}
-		}
-
-		return result;
+		return GetFormIdsFromJson(container, isAnyMissing);
 	}
 
 	uint32_t GetItemCount(RE::TESObjectREFR* container, RE::TESForm* itemBase)
@@ -238,5 +188,51 @@ namespace FormUtil
 		ss << std::hex << id;
 
 		return ss.str();
+	}
+
+	std::unordered_set<uint32_t> MapToSet(std::vector<uint32_t> vec)
+	{
+		std::unordered_set<uint32_t> set;
+		set.reserve(vec.size());
+
+		for (uint32_t v : vec)
+		{
+			set.insert(v);
+		}
+
+		return set;
+	}
+
+	std::vector<RE::TESForm*> GetFormsFromList(std::vector<uint32_t> formIds)
+	{
+		std::vector<RE::TESForm*> res;
+
+		for (auto formId : formIds)
+		{
+			auto form = RE::TESForm::GetFormByID(formId);
+			if (form == NULL)
+			{
+				continue;
+			}
+
+			if (!form->Is(RE::ENUM_FORM_ID::kFLST))
+			{
+				res.push_back(form);
+
+				continue;
+			}
+
+			auto formList = form->As<RE::BGSListForm>();
+
+			for (auto& formFromList : formList->arrayOfForms)
+			{
+				if (formFromList != NULL)
+				{
+					res.push_back(formFromList);
+				}
+			}
+		}
+
+		return res;
 	}
 }
