@@ -4,6 +4,7 @@ set(SOURCES
 	src/ActorEquipManagerListener.cpp
 	src/ActorManager.cpp
 	src/ArmorProcessor.cpp
+	src/ExclusionManager.cpp
 	src/Files.cpp
 	src/FormUtil.cpp
 	src/HeadgearProcessor.cpp

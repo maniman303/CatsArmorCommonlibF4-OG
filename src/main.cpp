@@ -12,6 +12,7 @@
 #include "HeadgearProcessor.h"
 #include "PerkDistributor.h"
 #include "ActorEquipManagerListener.h"
+#include "ExclusionManager.h"
 
 extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Query(const F4SE::QueryInterface* a_f4se, F4SE::PluginInfo* a_info)
 {
@@ -82,6 +83,8 @@ void OnMessage(F4SE::MessagingInterface::Message* message)
 			REX::ERROR("Incomplete setup.");
 			return;
 		}
+
+		ExclusionManager::Initialize();
 
 		Hooks::Install();
 

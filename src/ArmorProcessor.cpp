@@ -4,6 +4,7 @@
 #include "FormUtil.h"
 #include "Setup.h"
 #include "Files.h"
+#include "ExclusionManager.h"
 
 namespace ArmorProcessor
 {
@@ -49,6 +50,12 @@ namespace ArmorProcessor
 		}
 
 		auto armor = form->As<RE::TESObjectARMO>();
+
+		if (ExclusionManager::Contains(armor))
+		{
+			REX::INFO(std::format("Excluded [{0}].", armor->GetFullName()));
+			return;
+		}
 
 		//REX::INFO(std::format("Adding keyword {0}.", keyword->GetFormID()));
 

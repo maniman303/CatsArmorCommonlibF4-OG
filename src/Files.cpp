@@ -87,21 +87,23 @@ namespace Files
 	{
 		auto pluginPath = Files::GetPluginPath();
 		bool pathExists = std::filesystem::exists(pluginPath);
-
 		if (!pathExists) {
 			std::filesystem::create_directory(pluginPath);
 		}
 
 		auto setupPath = Files::GetPluginPath().append("Setup");
-
 		if (!std::filesystem::exists(setupPath)) {
 			std::filesystem::create_directory(setupPath);
 		}
 
 		auto armorPath = Files::GetPluginPath().append("Armor");
-
 		if (!std::filesystem::exists(armorPath)) {
 			std::filesystem::create_directory(armorPath);
+		}
+
+		auto exclusionPath = Files::GetPluginPath().append("Exclusion");
+		if (!std::filesystem::exists(exclusionPath)) {
+			std::filesystem::create_directory(exclusionPath);
 		}
 	};
 }

@@ -6,6 +6,7 @@
 #include "Setup.h"
 #include "FormUtil.h"
 #include "Workaround.h"
+#include "ExclusionManager.h"
 
 namespace HeadgearProcessor
 {
@@ -210,6 +211,12 @@ namespace HeadgearProcessor
 		}
 
 		auto armor = form->As<RE::TESObjectARMO>();
+
+		if (ExclusionManager::Contains(armor))
+		{
+			REX::INFO(std::format("Excluded [{0}].", armor->GetFullName()));
+			return;
+		}
 
 		if (!ValidateHeadgear(armor))
 		{
