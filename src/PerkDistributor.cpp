@@ -44,6 +44,13 @@ namespace PerkDistributor
             return false;
         }
 
+        auto npcId = npc->GetFormID();
+
+        if ((npcId == 0x7 && excludePlayer) || npcId == 0x566BB || npcId == 0x566BC)
+        {
+            return false;
+        }
+
         auto race = npc->GetFormRace();
         if (!IsRaceOfHumanOrigin(race))
         {
