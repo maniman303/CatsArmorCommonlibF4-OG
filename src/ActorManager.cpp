@@ -1,6 +1,20 @@
 #include "ActorManager.h"
 #include "Setup.h"
 
+uint32_t CountStacks(const RE::BGSInventoryItem& itemData)
+{
+    uint32_t res = 0;
+
+    auto stack = itemData.stackData.get();
+    while (stack != NULL)
+    {
+        res++;
+        stack = stack->nextStack.get();
+    }
+
+    return res;
+}
+
 bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
 {
     if (actor == NULL || keyword == NULL)
@@ -8,7 +22,19 @@ bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
         return false;
     }
 
-    for (auto itemData : actor->inventoryList->data)
+    auto inventoryList = actor->inventoryList;
+    if (inventoryList == NULL)
+    {
+        auto npc = actor->GetNPC();
+        if (npc != NULL)
+        {
+            REX::WARN(std::format("Inventory for actor [{0}] is NULL.", npc->GetFullName()));
+        }
+
+        return false;
+    }
+
+    for (auto itemData : inventoryList->data)
     {
         auto object = itemData.object;
         if (object == NULL)
@@ -23,12 +49,12 @@ bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
 
         auto armor = object->As<RE::TESObjectARMO>();
 
-        for (uint32_t i = 0; i < itemData.GetCount(); i++)
+        for (uint32_t i = 0; i < CountStacks(itemData); i++)
         {
             auto stack = itemData.GetStackByID(i);
             if (stack == NULL)
             {
-                // REX::INFO("Continued.");
+                // REX::INFO("Stack is null, continued.");
                 continue;
             }
 
@@ -87,6 +113,13 @@ bool ActorManager::IsItemEquipped(RE::Actor* actor, RE::BGSObjectInstance instan
         return false;
     }
 
+    if (!instance.instanceData)
+    {
+        return true;
+    }
+
+    auto expectedInstanceData = instance.instanceData.get();
+
     for (auto itemData : actor->inventoryList->data)
     {
         auto object = itemData.object;
@@ -95,7 +128,7 @@ bool ActorManager::IsItemEquipped(RE::Actor* actor, RE::BGSObjectInstance instan
             continue;
         }
 
-        for (uint32_t i = 0; i < itemData.GetCount(); i++)
+        for (uint32_t i = 0; i < CountStacks(itemData); i++)
         {
             auto stack = itemData.GetStackByID(i);
             if (stack == NULL)
@@ -107,13 +140,7 @@ bool ActorManager::IsItemEquipped(RE::Actor* actor, RE::BGSObjectInstance instan
             {
                 continue;
             }
-
-            if (!instance.instanceData)
-            {
-                return true;
-            }
-
-            auto expectedInstanceData = instance.instanceData.get();
+            
             if (itemData.GetInstanceData(i) == expectedInstanceData)
             {
                 return true;

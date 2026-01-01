@@ -34,7 +34,7 @@ private:
 			return NULL;
 		}
 
-		uint32_t hairTopMask = 1;
+        uint32_t hairTopMask = 1;
 		uint32_t hairLongMask = 2;
 		uint32_t hairBeardMask = 1 << 18;
 		uint32_t headbandMask = 1 << 16;
@@ -56,7 +56,6 @@ private:
 		{
 			RE::BSScript::IVirtualMachine* vm;
 			uint32_t formId;
-            RE::TESObjectREFR* objectRef;
 		};
 
         if (objectRef == NULL)
@@ -78,11 +77,10 @@ private:
 
 		eventData.vm = vm;
 		eventData.formId = objectRef->GetFormID();
-        eventData.objectRef = objectRef;
 
 		papyrus->GetExternalEventRegistrations("HeadgearEquipEvent", &eventData, [](uint64_t handle, const char* scriptName, const char* callbackName, void* dataPtr) {
 			PapyrusEventData* d = static_cast<PapyrusEventData*>(dataPtr);
-			d->vm->DispatchMethodCall<uint32_t>(handle, scriptName, callbackName, NULL, d->formId);
+			d->vm->DispatchMethodCall(handle, scriptName, callbackName, NULL, d->formId);
 		});
 	}
 
@@ -113,15 +111,19 @@ private:
             return RE::BSEventNotifyControl::kContinue;
         }
 
+        // REX::INFO("Item not null");
+
         if (!PerkDistributor::IsNpcValid(npc, false))
         {
             return RE::BSEventNotifyControl::kContinue;
         }
 
-        // REX::INFO("Send headgear event");
+        // REX::INFO("Npc is valid");
 
         if (!ActorManager::ProcessHairStubs(actor, *itemInstance, aEvent.changeType.get() == RE::ActorEquipManagerEvent::Type::kUnequip))
         {
+            // REX::INFO("Send headgear event.");
+
             SendHeadgearPapyrusEvent(actor);
         }
 
