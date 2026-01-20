@@ -25,7 +25,7 @@ namespace PapyrusUtil
 
 	void LogScript(std::monostate, RE::BSFixedString message)
 	{
-		if (message == NULL || message.empty())
+		if (message.empty())
 		{
 			return;
 		}
@@ -37,7 +37,7 @@ namespace PapyrusUtil
 
 	void Notification(std::monostate, RE::BSFixedString message)
 	{
-		if (message == NULL || message.empty())
+		if (message.empty())
 		{
 			return;
 		}
