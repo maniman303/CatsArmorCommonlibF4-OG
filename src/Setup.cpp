@@ -117,25 +117,29 @@ namespace Setup
 	{
 		auto typedSetup = setup[type];
 
-		if (typedSetup.empty()) {
+		if (typedSetup.empty() || !typedSetup.isObject())
+		{
 			return false;
 		}
 
 		auto keywordId = FormUtil::GetFormIdFromJson(typedSetup["keywordToAdd"]);
 		auto keyword = FormUtil::GetFormAs<RE::BGSKeyword>(keywordId);
-		if (keyword == NULL) {
+		if (keyword == NULL)
+		{
 			return false;
 		}
 
 		auto attachSlotId = FormUtil::GetFormIdFromJson(typedSetup["attachSlotToAdd"]);
 		auto attachSlot = FormUtil::GetFormAs<RE::BGSKeyword>(attachSlotId);
-		if (attachSlot == NULL) {
+		if (attachSlot == NULL)
+		{
 			return false;
 		}
 
 		auto armorAddonId = FormUtil::GetFormIdFromJson(typedSetup["armorAddon"]);
 		auto armorAddon = FormUtil::GetFormAs<RE::TESObjectARMA>(armorAddonId);
-		if (armorAddon == NULL) {
+		if (armorAddon == NULL)
+		{
 			return false;
 		}
 
@@ -148,81 +152,94 @@ namespace Setup
 	{
 		auto typedSetup = setup["headgear"];
 
-		if (typedSetup.empty()) {
+		if (typedSetup.empty() || !typedSetup.isObject())
+		{
 			REX::WARN("Json setup is empty.");
 			return false;
 		}
 
 		auto enabledSetup = typedSetup["enabled"];
-		if (!enabledSetup.empty() && enabledSetup.isBool() && !enabledSetup.asBool()) {
+		if (!enabledSetup.empty() && enabledSetup.isBool() && !enabledSetup.asBool())
+		{
 			REX::WARN("Json setup is disabled.");
 			return false;
 		}
 
 		int bipedIndex = DefaultBipedIndex;
 		auto bipedIndexSetup = typedSetup["bipedIndex"];
-		if (!bipedIndexSetup.empty() && bipedIndexSetup.isInt()) {
+		if (!bipedIndexSetup.empty() && bipedIndexSetup.isInt())
+		{
 			bipedIndex = bipedIndexSetup.asInt();
 			REX::WARN(std::format("Custom biped index set to: {}.", bipedIndex));
 		}
 
 		auto keywordId = FormUtil::GetFormIdFromJson(typedSetup["keywordToAdd"]);
 		auto keyword = FormUtil::GetFormAs<RE::BGSKeyword>(keywordId);
-		if (keyword == NULL) {
+		if (keyword == NULL)
+		{
 			return false;
 		}
 
 		auto keywordHiddenId = FormUtil::GetFormIdFromJson(typedSetup["keywordHidden"]);
 		auto keywordHidden = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHiddenId);
-		if (keywordHidden == NULL) {
+		if (keywordHidden == NULL)
+		{
 			return false;
 		}
 
 		auto attachSlotId = FormUtil::GetFormIdFromJson(typedSetup["attachSlotToAdd"]);
 		auto attachSlot = FormUtil::GetFormAs<RE::BGSKeyword>(attachSlotId);
-		if (attachSlot == NULL) {
+		if (attachSlot == NULL)
+		{
 			return false;
 		}
 
 		auto armorAddonId = FormUtil::GetFormIdFromJson(typedSetup["armorAddon"]);
 		auto armorAddon = FormUtil::GetFormAs<RE::TESObjectARMA>(armorAddonId);
-		if (armorAddon == NULL) {
+		if (armorAddon == NULL)
+		{
 			return false;
 		}
 
 		auto keywordHairLongId = FormUtil::GetFormIdFromJson(typedSetup["keywordHairLong"]);
 		auto keywordHairLong = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHairLongId);
-		if (keywordHairLong == NULL) {
+		if (keywordHairLong == NULL)
+		{
 			return false;
 		}
 
 		auto keywordHairTopId = FormUtil::GetFormIdFromJson(typedSetup["keywordHairTop"]);
 		auto keywordHairTop = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHairTopId);
-		if (keywordHairTop == NULL) {
+		if (keywordHairTop == NULL)
+		{
 			return false;
 		}
 
 		auto keywordHairBeardId = FormUtil::GetFormIdFromJson(typedSetup["keywordHairBeard"]);
 		auto keywordHairBeard = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHairBeardId);
-		if (keywordHairBeard == NULL) {
+		if (keywordHairBeard == NULL)
+		{
 			return false;
 		}
 
 		auto armorHairLongId = FormUtil::GetFormIdFromJson(typedSetup["armorHairLong"]);
 		auto armorHairLong = FormUtil::GetFormAs<RE::TESObjectARMO>(armorHairLongId);
-		if (armorHairLong == NULL) {
+		if (armorHairLong == NULL)
+		{
 			return false;
 		}
 
 		auto armorHairTopId = FormUtil::GetFormIdFromJson(typedSetup["armorHairTop"]);
 		auto armorHairTop = FormUtil::GetFormAs<RE::TESObjectARMO>(armorHairTopId);
-		if (armorHairTop == NULL) {
+		if (armorHairTop == NULL)
+		{
 			return false;
 		}
 
 		auto armorHairBeardId = FormUtil::GetFormIdFromJson(typedSetup["armorHairBeard"]);
 		auto armorHairBeard = FormUtil::GetFormAs<RE::TESObjectARMO>(armorHairBeardId);
-		if (armorHairBeard == NULL) {
+		if (armorHairBeard == NULL)
+		{
 			return false;
 		}
 
@@ -342,13 +359,16 @@ namespace Setup
 		Json::Value setupJson;
 		std::ifstream setupFile;
 
-		try {
+		try
+		{
 			setupFile.open(filePath);
 
 			setupFile >> setupJson;
 
 			setupFile.close();
-		} catch (std::exception ex) {
+		}
+		catch (std::exception ex)
+		{
 			REX::ERROR(std::format("Invalid json '{0}'.", filePath.string()));
 
 			return false;
@@ -356,33 +376,34 @@ namespace Setup
 
 		bool result = true;
 
-		if (!LoadTypedSetup(setupJson, "torso")) {
-			REX::WARN("Missing setup for torso.");
-			result = false;
-		}
+		for (const std::string& key : setupJson.getMemberNames())
+		{
+			if (key == "actorProcessing")
+			{
+				continue;
+			}
+			else if (key == "magic")
+			{
+				continue;
+			}
 
-		if (!LoadTypedSetup(setupJson, "leftArm")) {
-			REX::WARN("Missing setup for left arm.");
-			result = false;
-		}
+			if (key == "headgear")
+			{
+				if (!LoadHeadgearSetup(setupJson))
+				{
+					REX::WARN("Missing setup for headgear.");
+				}
 
-		if (!LoadTypedSetup(setupJson, "rightArm")) {
-			REX::WARN("Missing setup for right arm.");
-			result = false;
-		}
+				continue;
+			}
 
-		if (!LoadTypedSetup(setupJson, "leftLeg")) {
-			REX::WARN("Missing setup for left leg.");
-			result = false;
-		}
+			// REX::INFO(std::format("Trying to load [{0}].", key));
 
-		if (!LoadTypedSetup(setupJson, "rightLeg")) {
-			REX::WARN("Missing setup for right leg.");
-			result = false;
-		}
-
-		if (!LoadHeadgearSetup(setupJson)) {
-			REX::WARN("Missing setup for headgear.");
+			if (!LoadTypedSetup(setupJson, key))
+			{
+				REX::WARN(std::format("Invalid setup for [{0}].", key));
+				result = false;
+			}
 		}
 
 		if (!LoadSpellAndPerk(setupJson))
