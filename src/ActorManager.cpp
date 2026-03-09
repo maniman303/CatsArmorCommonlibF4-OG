@@ -154,6 +154,10 @@ bool ActorManager::IsItemEquipped(RE::Actor* actor, RE::BGSObjectInstance instan
 bool ActorManager::ProcessHairStubs(RE::Actor* actor, RE::BGSObjectInstance armor, bool isUnequipEvent)
 {
     auto setup = Setup::GetForms("headgear");
+    if (setup.isEmpty)
+    {
+        return true;
+    }
 
     bool isVisibleHelmetWorn = ActorManager::WornHasKeyword(actor, setup.keyword) &&
         !ActorManager::WornHasKeyword(actor, setup.keywordHidden);
