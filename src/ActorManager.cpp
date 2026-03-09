@@ -174,13 +174,18 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, RE::BGSObjectInstance armo
 
     auto equipManager = RE::ActorEquipManager::GetSingleton();
 
+    bool anyChange = false;
+
     if (!isVisibleHelmetWorn || !isEquipped)
     {
-        equipManager->UnequipObject(actor, &instanceHairTop, 1, NULL, 0, true, true, false, true, NULL);
-        equipManager->UnequipObject(actor, &instanceHairLong, 1, NULL, 0, true, true, false, true, NULL);
-        equipManager->UnequipObject(actor, &instanceHairBeard, 1, NULL, 0, true, true, false, true, NULL);
+        anyChange = anyChange || equipManager->UnequipObject(actor, &instanceHairTop, 1, NULL, 0, true, true, false, true, NULL);
+        anyChange = anyChange || equipManager->UnequipObject(actor, &instanceHairLong, 1, NULL, 0, true, true, false, true, NULL);
+        anyChange = anyChange || equipManager->UnequipObject(actor, &instanceHairBeard, 1, NULL, 0, true, true, false, true, NULL);
 
-        actor->Reset3D(true, 0, true, 0xC);
+        if (anyChange)
+        {
+            actor->Reset3D(true, 0, true, 0xC);
+        }
 
         return isUnequipEvent != isEquipped;
     }
@@ -189,20 +194,29 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, RE::BGSObjectInstance armo
 
     if (ActorManager::WornHasKeyword(actor, setup.keywordHairTop))
     {
-        res = res && equipManager->EquipObject(actor, instanceHairTop, 0, 1, NULL, true, true, false, true, true);
+        bool equipSuccessful = equipManager->EquipObject(actor, instanceHairTop, 0, 1, NULL, true, true, false, true, true);
+        res = res && equipSuccessful;
+        anyChange = anyChange || equipSuccessful;
     }
 
     if (ActorManager::WornHasKeyword(actor, setup.keywordHairLong))
     {
-        res = res && equipManager->EquipObject(actor, instanceHairLong, 0, 1, NULL, true, true, false, true, true);
+        bool equipSuccessful = equipManager->EquipObject(actor, instanceHairLong, 0, 1, NULL, true, true, false, true, true);
+        res = res && equipSuccessful;
+        anyChange = anyChange || equipSuccessful;
     }
 
     if (ActorManager::WornHasKeyword(actor, setup.keywordHairBeard))
     {
-        res = res && equipManager->EquipObject(actor, instanceHairBeard, 0, 1, NULL, true, true, false, true, true);
+        bool equipSuccessful = equipManager->EquipObject(actor, instanceHairBeard, 0, 1, NULL, true, true, false, true, true);
+        res = res && equipSuccessful;
+        anyChange = anyChange || equipSuccessful;
     }
 
-    actor->Reset3D(true, 0, true, 0xC);
+    if (anyChange)
+    {
+        actor->Reset3D(true, 0, true, 0xC);
+    }
 
     return res && (isUnequipEvent != isEquipped);
 }

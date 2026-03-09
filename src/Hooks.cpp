@@ -73,6 +73,8 @@ namespace Hooks
 	{
 		if (aThis == NULL)
 		{
+			LoadGame::Hook(aThis, buf);
+			
 			return;
 		}
 
