@@ -1,3 +1,4 @@
+#include <excpt.h>
 #include "ActorEquipManagerListener.h"
 #include "PerkDistributor.h"
 #include "PapyrusUtil.h"
@@ -50,14 +51,79 @@ private:
         return armor;
     }
 
+    struct PapyrusEventData
+    {
+        RE::BSScript::IVirtualMachine* vm;
+        uint32_t formId;
+    };
+
+    static uint32_t GetSafePapyrusFormId(PapyrusEventData* dataPtr)
+    {
+        __try
+        {
+            return dataPtr->formId;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return 0;
+        }
+    }
+
+    static void RunHeadgearPapyrusEvent(uint64_t handle, const char* scriptName, const char* callbackName, void* dataPtr)
+    {
+        if (dataPtr == NULL) {
+            REX::WARN("Event distributed for a null data.");
+            return;
+        }
+        
+        auto d = static_cast<PapyrusEventData*>(dataPtr);
+        uint32_t actorId = GetSafePapyrusFormId(d);
+        if (actorId == 0) {
+            REX::ERROR("Could not retrieve id of the papyrus event actor.");
+            return;
+        }
+        
+        RE::BSFixedString sn;
+        if (scriptName != NULL) {
+            sn = scriptName;
+        }
+
+        RE::BSFixedString cn;
+        if (callbackName != NULL) {
+            cn = callbackName;
+        }
+
+        d->vm->DispatchMethodCall(handle, sn, cn, NULL, actorId);
+        delete d;
+    }
+
+    static uint32_t GetSafeObjectFormId(RE::TESObjectREFR* objectRef)
+    {
+        __try
+        {
+            return objectRef->GetFormID();
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return 0;
+        }
+    }
+
+    static bool AddSafeKeyword(RE::TESObjectREFR* objectRef, RE::BGSKeyword* kywd)
+    {
+        __try
+        {
+            objectRef->AddKeyword(kywd);
+            return true;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return false;
+        }
+    }
+
     void SendHeadgearPapyrusEvent(RE::TESObjectREFR* objectRef)
 	{
-		struct PapyrusEventData
-		{
-			RE::BSScript::IVirtualMachine* vm;
-			uint32_t formId;
-		};
-
         if (objectRef == NULL)
         {
             return;
@@ -69,18 +135,28 @@ private:
             return;
         }
 
-        objectRef->AddKeyword(kywd);
+        uint32_t actorId = GetSafeObjectFormId(objectRef);
+        if (actorId == 0)
+        {
+            REX::ERROR("Could not retrieve id of the equip event actor.");
+            return;
+        }
 
-		PapyrusEventData eventData;
+        if (!AddSafeKeyword(objectRef, kywd))
+        {
+            REX::ERROR(std::format("Could not add keyword to actor with id [0x{:08X}].", actorId));
+            return;
+        }
+
+		auto eventData = new PapyrusEventData();
 		auto const papyrus = F4SE::GetPapyrusInterface();
 		auto* vm = RE::GameVM::GetSingleton()->GetVM().get();
 
-		eventData.vm = vm;
-		eventData.formId = objectRef->GetFormID();
+		eventData->vm = vm;
+		eventData->formId = actorId;
 
-		papyrus->GetExternalEventRegistrations("HeadgearEquipEvent", &eventData, [](uint64_t handle, const char* scriptName, const char* callbackName, void* dataPtr) {
-			PapyrusEventData* d = static_cast<PapyrusEventData*>(dataPtr);
-			d->vm->DispatchMethodCall(handle, scriptName, callbackName, NULL, d->formId);
+		papyrus->GetExternalEventRegistrations("HeadgearEquipEvent", eventData, [](uint64_t handle, const char* scriptName, const char* callbackName, void* dataPtr) {
+            RunHeadgearPapyrusEvent(handle, scriptName, callbackName, dataPtr);
 		});
 	}
 
