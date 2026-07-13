@@ -30,11 +30,11 @@ bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
         {
             REX::WARN(std::format("Inventory for actor [{0}] is NULL.", npc->GetFullName()));
         }
-
+        
         return false;
     }
 
-    for (auto itemData : inventoryList->data)
+    for (auto& itemData : inventoryList->data)
     {
         auto object = itemData.object;
         if (object == NULL)
@@ -106,24 +106,17 @@ bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
     return false;
 }
 
-bool ActorManager::IsItemEquipped(RE::Actor* actor, RE::BGSObjectInstance instance)
+bool ActorManager::IsItemEquipped(RE::Actor* actor, const RE::BGSObjectInstance* instance)
 {
-    if (actor == NULL || instance.object == NULL)
+    if (actor == NULL || instance == NULL || instance->object == NULL)
     {
         return false;
     }
 
-    if (!instance.instanceData)
-    {
-        return true;
-    }
-
-    auto expectedInstanceData = instance.instanceData.get();
-
     for (auto itemData : actor->inventoryList->data)
     {
         auto object = itemData.object;
-        if (object == NULL || object != instance.object)
+        if (object == NULL || object != instance->object)
         {
             continue;
         }
@@ -140,7 +133,13 @@ bool ActorManager::IsItemEquipped(RE::Actor* actor, RE::BGSObjectInstance instan
             {
                 continue;
             }
-            
+
+            if (!instance->instanceData)
+            {
+                return true;
+            }
+
+            auto expectedInstanceData = instance->instanceData.get();
             if (itemData.GetInstanceData(i) == expectedInstanceData)
             {
                 return true;
@@ -151,7 +150,7 @@ bool ActorManager::IsItemEquipped(RE::Actor* actor, RE::BGSObjectInstance instan
     return false;
 }
 
-bool ActorManager::ProcessHairStubs(RE::Actor* actor, RE::BGSObjectInstance armor, bool isUnequipEvent)
+bool ActorManager::ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstance* armor, bool isUnequipEvent)
 {
     auto setup = Setup::GetForms("headgear");
     if (setup.isEmpty)
@@ -172,9 +171,9 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, RE::BGSObjectInstance armo
 
     // REX::INFO(std::format("Analyze is visible: {0}, is unequip: {1}, is equipped: {2}, form id: {3}", isVisibleHelmetWorn, isUnequipEvent, isEquipped, armor.object->GetFormID()));
 
-    auto instanceHairTop = RE::BGSObjectInstance(setup.armorHairTop, NULL);
-    auto instanceHairLong = RE::BGSObjectInstance(setup.armorHairLong, NULL);
-    auto instanceHairBeard = RE::BGSObjectInstance(setup.armorHairBeard, NULL);
+    auto instanceHairTop = RE::BGSObjectInstance(setup.armorHairTop, &setup.armorHairTop->armorData);
+    auto instanceHairLong = RE::BGSObjectInstance(setup.armorHairLong, &setup.armorHairLong->armorData);
+    auto instanceHairBeard = RE::BGSObjectInstance(setup.armorHairBeard, &setup.armorHairBeard->armorData);
 
     auto equipManager = RE::ActorEquipManager::GetSingleton();
 

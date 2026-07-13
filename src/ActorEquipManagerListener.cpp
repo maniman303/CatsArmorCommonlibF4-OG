@@ -138,7 +138,7 @@ private:
         uint32_t actorId = GetSafeObjectFormId(objectRef);
         if (actorId == 0)
         {
-            REX::ERROR("Could not retrieve id of the equip event actor.");
+            REX::ERROR("Could not retrieve actor id during papyrus event processing.");
             return;
         }
 
@@ -159,6 +159,18 @@ private:
             RunHeadgearPapyrusEvent(handle, scriptName, callbackName, dataPtr);
 		});
 	}
+
+    static uint8_t TryProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstance* itemInstance, bool isUnequip)
+    {
+        __try
+        {
+            return ActorManager::ProcessHairStubs(actor, itemInstance, isUnequip) ? 1 : 0;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return 2;
+        }
+    }
 
     RE::BSEventNotifyControl ProcessEvent(const RE::ActorEquipManagerEvent::Event& aEvent, RE::BSTEventSource<RE::ActorEquipManagerEvent::Event>*) override
     {
@@ -196,7 +208,21 @@ private:
 
         // REX::INFO("Npc is valid");
 
-        if (!ActorManager::ProcessHairStubs(actor, *itemInstance, aEvent.changeType.get() == RE::ActorEquipManagerEvent::Type::kUnequip))
+        uint32_t actorId = GetSafeObjectFormId(actor);
+        if (actorId == 0)
+        {
+            REX::ERROR("Could not retrieve actor id during equip event processing.");
+            return RE::BSEventNotifyControl::kContinue;
+        }
+
+        uint8_t processRes = TryProcessHairStubs(actor, itemInstance, aEvent.changeType.get() == RE::ActorEquipManagerEvent::Type::kUnequip);
+        if (processRes > 1)
+        {
+            REX::ERROR(std::format("Could not process hair for actor [0x{:08X}].", actorId));
+            return RE::BSEventNotifyControl::kContinue;
+        }
+        
+        if (!processRes)
         {
             // REX::INFO("Send headgear event.");
 
