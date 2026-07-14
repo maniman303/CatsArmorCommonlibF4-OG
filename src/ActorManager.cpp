@@ -171,9 +171,12 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstanc
 
     // REX::INFO(std::format("Analyze is visible: {0}, is unequip: {1}, is equipped: {2}, form id: {3}", isVisibleHelmetWorn, isUnequipEvent, isEquipped, armor.object->GetFormID()));
 
-    auto instanceHairTop = RE::BGSObjectInstance(setup.armorHairTop, &setup.armorHairTop->armorData);
-    auto instanceHairLong = RE::BGSObjectInstance(setup.armorHairLong, &setup.armorHairLong->armorData);
-    auto instanceHairBeard = RE::BGSObjectInstance(setup.armorHairBeard, &setup.armorHairBeard->armorData);
+    auto armorHairTop = setup.armorHairTop;
+    auto armorHairLong = setup.armorHairLong;
+    auto armorHairBeard = setup.armorHairBeard;
+    auto instanceHairTop = new RE::BGSObjectInstance(armorHairTop, NULL); //&armorHairTop->armorData);
+    auto instanceHairLong = new RE::BGSObjectInstance(armorHairLong,  NULL); //&armorHairLong->armorData);
+    auto instanceHairBeard = new RE::BGSObjectInstance(armorHairBeard,  NULL); //&armorHairBeard->armorData);
 
     auto equipManager = RE::ActorEquipManager::GetSingleton();
 
@@ -181,9 +184,9 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstanc
 
     if (!isVisibleHelmetWorn || !isEquipped)
     {
-        anyChange = anyChange || equipManager->UnequipObject(actor, &instanceHairTop, 1, NULL, 0, true, true, false, true, NULL);
-        anyChange = anyChange || equipManager->UnequipObject(actor, &instanceHairLong, 1, NULL, 0, true, true, false, true, NULL);
-        anyChange = anyChange || equipManager->UnequipObject(actor, &instanceHairBeard, 1, NULL, 0, true, true, false, true, NULL);
+        anyChange = anyChange || equipManager->UnequipObject(actor, instanceHairTop, 1, armorHairTop->equipSlot, 0, true, true, false, true, NULL);
+        anyChange = anyChange || equipManager->UnequipObject(actor, instanceHairLong, 1, armorHairLong->equipSlot, 0, true, true, false, true, NULL);
+        anyChange = anyChange || equipManager->UnequipObject(actor, instanceHairBeard, 1, armorHairBeard->equipSlot, 0, true, true, false, true, NULL);
 
         if (anyChange)
         {
@@ -197,21 +200,21 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstanc
 
     if (ActorManager::WornHasKeyword(actor, setup.keywordHairTop))
     {
-        bool equipSuccessful = equipManager->EquipObject(actor, instanceHairTop, 0, 1, NULL, true, true, false, true, true);
+        bool equipSuccessful = equipManager->EquipObject(actor, *instanceHairTop, 0, 1, armorHairTop->equipSlot, true, true, false, true, true);
         res = res && equipSuccessful;
         anyChange = anyChange || equipSuccessful;
     }
 
     if (ActorManager::WornHasKeyword(actor, setup.keywordHairLong))
     {
-        bool equipSuccessful = equipManager->EquipObject(actor, instanceHairLong, 0, 1, NULL, true, true, false, true, true);
+        bool equipSuccessful = equipManager->EquipObject(actor, *instanceHairLong, 0, 1, armorHairLong->equipSlot, true, true, false, true, true);
         res = res && equipSuccessful;
         anyChange = anyChange || equipSuccessful;
     }
 
     if (ActorManager::WornHasKeyword(actor, setup.keywordHairBeard))
     {
-        bool equipSuccessful = equipManager->EquipObject(actor, instanceHairBeard, 0, 1, NULL, true, true, false, true, true);
+        bool equipSuccessful = equipManager->EquipObject(actor, *instanceHairBeard, 0, 1, armorHairBeard->equipSlot, true, true, false, true, true);
         res = res && equipSuccessful;
         anyChange = anyChange || equipSuccessful;
     }

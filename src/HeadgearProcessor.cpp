@@ -317,7 +317,7 @@ namespace HeadgearProcessor
 
 		for (auto& ae : armor->modelArray) {
 			if (ae.index == 303) {
-				REX::INFO(std::format("Form {0} already has armor addon with index 303.", FormUtil::GetHexFormId(armor->GetFormID())));
+				REX::WARN(std::format("Form [0x{:08X}] already has armor addon with index 303.", armor->GetFormID()));
 
 				return;
 			}
