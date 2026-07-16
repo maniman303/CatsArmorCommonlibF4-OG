@@ -15,7 +15,7 @@ uint32_t CountStacks(const RE::BGSInventoryItem& itemData)
     return res;
 }
 
-bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
+bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword, const RE::TBO_InstanceData* instance)
 {
     if (actor == NULL || keyword == NULL)
     {
@@ -30,7 +30,7 @@ bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
         {
             REX::WARN(std::format("Inventory for actor [{0}] is NULL.", npc->GetFullName()));
         }
-        
+
         return false;
     }
 
@@ -68,13 +68,18 @@ bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
 
             // REX::INFO("Is equipped.");
 
+            auto instanceData = itemData.GetInstanceData(i);
+            if (instance != NULL && instance != instanceData)
+            {
+                continue;
+            }
+
             if (armor->HasKeyword(keyword))
             {
                 return true;
             }
 
-            auto instance = itemData.GetInstanceData(i);
-            if (instance == NULL)
+            if (instanceData == NULL)
             {
                 // REX::INFO("Continued.");
                 continue;
@@ -82,7 +87,7 @@ bool ActorManager::WornHasKeyword(RE::Actor* actor, RE::BGSKeyword* keyword)
 
             // REX::INFO("Has instance data.");
 
-            auto keywordData = instance->GetKeywordData();
+            auto keywordData = instanceData->GetKeywordData();
             if (keywordData == NULL)
             {
                 // REX::INFO("Continued.");
@@ -121,6 +126,13 @@ bool ActorManager::IsItemEquipped(RE::Actor* actor, const RE::BGSObjectInstance*
             continue;
         }
 
+        RE::TBO_InstanceData* expectedInstanceData = NULL;
+        if (instance->instanceData)
+        {
+            // REX::INFO("Using instance data in equip validation.");
+            expectedInstanceData = instance->instanceData.get();
+        }
+
         for (uint32_t i = 0; i < CountStacks(itemData); i++)
         {
             auto stack = itemData.GetStackByID(i);
@@ -129,24 +141,129 @@ bool ActorManager::IsItemEquipped(RE::Actor* actor, const RE::BGSObjectInstance*
                 continue;
             }
 
-            if (!stack->IsEquipped())
-            {
-                continue;
-            }
-
-            if (!instance->instanceData)
-            {
-                return true;
-            }
-
-            auto expectedInstanceData = instance->instanceData.get();
             if (itemData.GetInstanceData(i) == expectedInstanceData)
+            {
+                return stack->IsEquipped();
+            }
+
+            if (expectedInstanceData == NULL && itemData.object == instance->object && stack->IsEquipped())
             {
                 return true;
             }
         }
     }
 
+    return false;
+}
+
+bool ActorManager::UnequipItem(RE::Actor* actor, RE::TESObjectARMO* armor)
+{
+    if (actor == NULL || armor == NULL || actor->inventoryList == NULL)
+    {
+        return false;
+    }
+
+    auto equipManager = RE::ActorEquipManager::GetSingleton();
+
+    for (auto itemData : actor->inventoryList->data)
+    {
+        auto object = itemData.object;
+        if (object == NULL)
+        {
+            continue;
+        }
+
+        if (object != armor)
+        {
+            continue;
+        }
+
+        if (itemData.GetCount() <= 0)
+        {
+            continue;
+        }
+
+        for (uint32_t i = 0; i < CountStacks(itemData); i++)
+        {
+            auto stack = itemData.GetStackByID(i);
+            if (!stack->IsEquipped())
+            {
+                continue;
+            }
+
+            auto instanceData = itemData.GetInstanceData(i);
+            auto instance = new RE::BGSObjectInstance(armor, instanceData);
+            equipManager->UnequipObject(actor, instance, 1, armor->equipSlot, i, false, true, false, true, NULL);
+            return true;
+        }
+    }
+
+    return true;
+}
+
+bool ActorManager::EquipItem(RE::Actor* actor, RE::TESObjectARMO* armor)
+{
+    if (actor == NULL || armor == NULL || actor->inventoryList == NULL)
+    {
+        return false;
+    }
+
+    auto itemCount = actor->GetInventoryObjectCount(armor);
+    // if (itemCount > 0)
+    // {
+    //     RE::TESObjectREFR::RemoveItemData removeData(armor, 1);
+    //     actor->RemoveItem(removeData);
+    //     itemCount = 0; 
+    // }
+
+    if (itemCount == 0)
+    {
+        auto equipIndex = RE::BGSEquipIndex();
+        equipIndex.index = 0;
+
+        actor->inventoryList->rwLock.lock_write();
+
+        actor->AddInventoryItem(armor->As<RE::TESBoundObject>(), NULL, 1, NULL, NULL, NULL);
+        // actor->inventoryList->AddItem2(armor->As<RE::TESBoundObject>(), 1, new RE::ExtraDataList(), 0);
+
+        actor->inventoryList->rwLock.unlock_write();
+    }
+
+    auto equipManager = RE::ActorEquipManager::GetSingleton();
+    for (auto itemData : actor->inventoryList->data)
+    {
+        auto object = itemData.object;
+        if (object == NULL)
+        {
+            continue;
+        }
+
+        if (itemData.GetCount() <= 0)
+        {
+            continue;
+        }
+
+        if (object != armor)
+        {
+            continue;
+        }
+
+        if (CountStacks(itemData) > 0)
+        {
+            auto stack = itemData.GetStackByID(0);
+            if (stack->IsEquipped())
+            {
+                // REX::INFO("Item already equipped.");
+                return true;
+            }
+
+            auto instanceData = itemData.GetInstanceData(0);
+            auto instance = new RE::BGSObjectInstance(armor, instanceData);
+            return equipManager->EquipObject(actor, *instance, 0, 1, armor->equipSlot, false, true, false, true, false);
+        }
+    }
+
+    REX::ERROR("Couldn't find armor in actors inventory to equip.");
     return false;
 }
 
@@ -166,63 +283,84 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstanc
     if (!isUnequipEvent && !isEquipped)
     {
         // Skip broken events
-        return false;
+        return true;
     }
 
-    // REX::INFO(std::format("Analyze is visible: {0}, is unequip: {1}, is equipped: {2}, form id: {3}", isVisibleHelmetWorn, isUnequipEvent, isEquipped, armor.object->GetFormID()));
+    // REX::INFO(std::format("PROCESSING... Is visible: {0}, is unequip: {1}, is equipped: {2}.", isVisibleHelmetWorn, isUnequipEvent, isEquipped));
 
     auto armorHairTop = setup.armorHairTop;
     auto armorHairLong = setup.armorHairLong;
     auto armorHairBeard = setup.armorHairBeard;
-    auto instanceHairTop = new RE::BGSObjectInstance(armorHairTop, NULL); //&armorHairTop->armorData);
-    auto instanceHairLong = new RE::BGSObjectInstance(armorHairLong,  NULL); //&armorHairLong->armorData);
-    auto instanceHairBeard = new RE::BGSObjectInstance(armorHairBeard,  NULL); //&armorHairBeard->armorData);
 
-    auto equipManager = RE::ActorEquipManager::GetSingleton();
-
-    bool anyChange = false;
+    uint8_t anyChange = 0;
 
     if (!isVisibleHelmetWorn || !isEquipped)
     {
-        anyChange = anyChange || equipManager->UnequipObject(actor, instanceHairTop, 1, armorHairTop->equipSlot, 0, true, true, false, true, NULL);
-        anyChange = anyChange || equipManager->UnequipObject(actor, instanceHairLong, 1, armorHairLong->equipSlot, 0, true, true, false, true, NULL);
-        anyChange = anyChange || equipManager->UnequipObject(actor, instanceHairBeard, 1, armorHairBeard->equipSlot, 0, true, true, false, true, NULL);
+        anyChange += ActorManager::UnequipItem(actor, armorHairTop) ? 1 : 0;
+        anyChange += ActorManager::UnequipItem(actor, armorHairLong) ? 1 : 0;
+        anyChange += ActorManager::UnequipItem(actor, armorHairBeard) ? 1 : 0;
 
-        if (anyChange)
+        if (anyChange > 0)
         {
-            actor->Reset3D(true, 0, true, 0xC);
+            // REX::INFO("Should updated unequipped items.");
+            actor->HandleItemEquip(false);
         }
 
         return isUnequipEvent != isEquipped;
     }
 
+    RE::TBO_InstanceData* armorInstance = NULL;
+    if (armor != NULL && armor->instanceData)
+    {
+        armorInstance = armor->instanceData.get();
+    }
+
     bool res = true;
 
-    if (ActorManager::WornHasKeyword(actor, setup.keywordHairTop))
+    if (ActorManager::WornHasKeyword(actor, setup.keywordHairTop, armorInstance) && !isUnequipEvent)
     {
-        bool equipSuccessful = equipManager->EquipObject(actor, *instanceHairTop, 0, 1, armorHairTop->equipSlot, true, true, false, true, true);
+        bool equipSuccessful = ActorManager::EquipItem(actor, armorHairTop);
         res = res && equipSuccessful;
-        anyChange = anyChange || equipSuccessful;
+        anyChange += equipSuccessful ? 1 : 0;
+    }
+    else
+    {
+        bool unequipSuccessful = ActorManager::UnequipItem(actor, armorHairTop);
+        res = res && unequipSuccessful;
+        anyChange += unequipSuccessful ? 1 : 0;
     }
 
-    if (ActorManager::WornHasKeyword(actor, setup.keywordHairLong))
+    if (ActorManager::WornHasKeyword(actor, setup.keywordHairLong, armorInstance) && !isUnequipEvent)
     {
-        bool equipSuccessful = equipManager->EquipObject(actor, *instanceHairLong, 0, 1, armorHairLong->equipSlot, true, true, false, true, true);
+        bool equipSuccessful = ActorManager::EquipItem(actor, armorHairLong);
         res = res && equipSuccessful;
-        anyChange = anyChange || equipSuccessful;
+        anyChange += equipSuccessful ? 1 : 0;
+    }
+    else
+    {
+        bool unequipSuccessful = ActorManager::UnequipItem(actor, armorHairLong);
+        res = res && unequipSuccessful;
+        anyChange += unequipSuccessful ? 1 : 0;
     }
 
-    if (ActorManager::WornHasKeyword(actor, setup.keywordHairBeard))
+    if (ActorManager::WornHasKeyword(actor, setup.keywordHairBeard, armorInstance) && !isUnequipEvent)
     {
-        bool equipSuccessful = equipManager->EquipObject(actor, *instanceHairBeard, 0, 1, armorHairBeard->equipSlot, true, true, false, true, true);
+        bool equipSuccessful = ActorManager::EquipItem(actor, armorHairBeard);
         res = res && equipSuccessful;
-        anyChange = anyChange || equipSuccessful;
+        anyChange += equipSuccessful ? 1 : 0;
     }
-
-    if (anyChange)
+    else
     {
-        actor->Reset3D(true, 0, true, 0xC);
+        bool unequipSuccessful = ActorManager::UnequipItem(actor, armorHairBeard);
+        res = res && unequipSuccessful;
+        anyChange += unequipSuccessful ? 1 : 0;
     }
 
-    return res && (isUnequipEvent != isEquipped);
+    if (anyChange > 0)
+    {
+        // REX::INFO(std::format("Should updated equipped items with change [{0}].", anyChange));
+        actor->HandleItemEquip(false);
+    }
+
+    return res && !isUnequipEvent;
 }

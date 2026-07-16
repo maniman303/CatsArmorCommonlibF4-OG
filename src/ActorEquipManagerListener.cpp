@@ -212,7 +212,7 @@ private:
         
         if (!ActorManager::ProcessHairStubs(actor, itemInstance, aEvent.changeType.get() == RE::ActorEquipManagerEvent::Type::kUnequip))
         {
-            // REX::INFO("Send headgear event.");
+            // REX::INFO(std::format("Send headgear event for actor [0x{:08X}].", actorId));
 
             SendHeadgearPapyrusEvent(actor);
         }
