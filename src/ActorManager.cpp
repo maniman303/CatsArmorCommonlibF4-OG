@@ -303,7 +303,11 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstanc
         if (anyChange > 0)
         {
             // REX::INFO("Should updated unequipped items.");
-            actor->HandleItemEquip(false);
+            F4SE::GetTaskInterface()->AddTask(
+                [actor]()
+                {
+                    actor->HandleItemEquip(true);
+                });
         }
 
         return isUnequipEvent != isEquipped;
@@ -359,7 +363,11 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstanc
     if (anyChange > 0)
     {
         // REX::INFO(std::format("Should updated equipped items with change [{0}].", anyChange));
-        actor->HandleItemEquip(false);
+        F4SE::GetTaskInterface()->AddTask(
+            [actor]()
+            {
+                actor->HandleItemEquip(true);
+            });
     }
 
     return res && !isUnequipEvent;

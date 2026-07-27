@@ -127,7 +127,7 @@ private:
         }
     }
 
-    void SendHeadgearPapyrusEvent(RE::TESObjectREFR* objectRef)
+    static void SendHeadgearPapyrusEvent(RE::TESObjectREFR* objectRef)
 	{
         if (objectRef == NULL)
         {
@@ -214,7 +214,11 @@ private:
         {
             // REX::INFO(std::format("Send headgear event for actor [0x{:08X}].", actorId));
 
-            SendHeadgearPapyrusEvent(actor);
+            F4SE::GetTaskInterface()->AddTask(
+                [actor]()
+                {
+                    SendHeadgearPapyrusEvent(actor);
+                });
         }
 
         return RE::BSEventNotifyControl::kContinue;
