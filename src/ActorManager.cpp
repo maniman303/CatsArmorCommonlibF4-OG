@@ -1,5 +1,6 @@
 #include "ActorManager.h"
 #include "Setup.h"
+#include <excpt.h>
 
 uint32_t CountStacks(const RE::BGSInventoryItem& itemData)
 {
@@ -267,8 +268,37 @@ bool ActorManager::EquipItem(RE::Actor* actor, RE::TESObjectARMO* armor)
     return false;
 }
 
+static bool IsActorScrapped(RE::Actor* actor)
+{
+    if (actor == NULL)
+    {
+        return true;
+    }
+
+    __try
+    {
+        if (actor->IsDisabled() || actor->IsDeleted())
+        {
+            // REX::INFO("Actor is unavailable.");
+            return true;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        REX::WARN("Actor is scrapped.");
+        return true;
+    }
+
+    return false;
+}
+
 bool ActorManager::ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstance* armor, bool isUnequipEvent)
 {
+    if (IsActorScrapped(actor))
+    {
+        return true;
+    }
+    
     auto setup = Setup::GetForms("headgear");
     if (setup.isEmpty)
     {
@@ -371,4 +401,67 @@ bool ActorManager::ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstanc
     }
 
     return res && !isUnequipEvent;
+}
+
+bool ActorManager::ProcessHairStubs(RE::Actor* actor)
+{
+    if (IsActorScrapped(actor))
+    {
+        return true;
+    }
+
+    auto setup = Setup::GetForms("headgear");
+    if (setup.isEmpty)
+    {
+        return true;
+    }
+
+    auto armorHairTop = setup.armorHairTop;
+    auto armorHairLong = setup.armorHairLong;
+    auto armorHairBeard = setup.armorHairBeard;
+
+    uint8_t anyChange = 0;
+
+    bool isHidden = ActorManager::WornHasKeyword(actor, setup.keywordHidden);
+
+    if (ActorManager::WornHasKeyword(actor, setup.keywordHairTop) && !isHidden)
+    {
+        bool equipSuccessful = ActorManager::EquipItem(actor, armorHairTop);
+        anyChange += equipSuccessful ? 1 : 0;
+    }
+    else
+    {
+        bool unequipSuccessful = ActorManager::UnequipItem(actor, armorHairTop);
+        anyChange += unequipSuccessful ? 1 : 0;
+    }
+
+    if (ActorManager::WornHasKeyword(actor, setup.keywordHairLong) && !isHidden)
+    {
+        bool equipSuccessful = ActorManager::EquipItem(actor, armorHairLong);
+        anyChange += equipSuccessful ? 1 : 0;
+    }
+    else
+    {
+        bool unequipSuccessful = ActorManager::UnequipItem(actor, armorHairLong);
+        anyChange += unequipSuccessful ? 1 : 0;
+    }
+
+    if (ActorManager::WornHasKeyword(actor, setup.keywordHairBeard) && !isHidden)
+    {
+        bool equipSuccessful = ActorManager::EquipItem(actor, armorHairBeard);
+        anyChange += equipSuccessful ? 1 : 0;
+    }
+    else
+    {
+        bool unequipSuccessful = ActorManager::UnequipItem(actor, armorHairBeard);
+        anyChange += unequipSuccessful ? 1 : 0;
+    }
+
+    if (anyChange > 0)
+    {
+        // REX::INFO(std::format("Should updated equipped items with change [{0}].", anyChange));
+        actor->HandleItemEquip(true);
+    }
+
+    return true;
 }

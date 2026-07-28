@@ -210,14 +210,23 @@ private:
 
         // REX::INFO(std::format("Processing actor [0x{:08X}].", actorId));
         
-        if (!ActorManager::ProcessHairStubs(actor, itemInstance, aEvent.changeType.get() == RE::ActorEquipManagerEvent::Type::kUnequip))
+        auto ui = RE::UI::GetSingleton();
+        if (ui->GetMenuOpen(RE::BarterMenu::MENU_NAME) || ui->GetMenuOpen(RE::ContainerMenu::MENU_NAME))
         {
-            // REX::INFO(std::format("Send headgear event for actor [0x{:08X}].", actorId));
+            bool isUnequip = aEvent.changeType.get() == RE::ActorEquipManagerEvent::Type::kUnequip;
+            if (!ActorManager::ProcessHairStubs(actor, itemInstance, isUnequip))
+            {
+                // REX::INFO(std::format("Send headgear event for actor [0x{:08X}].", actorId));
 
+                SendHeadgearPapyrusEvent(actor);
+            }
+        }
+        else
+        {
             F4SE::GetTaskInterface()->AddTask(
                 [actor]()
                 {
-                    SendHeadgearPapyrusEvent(actor);
+                    ActorManager::ProcessHairStubs(actor);
                 });
         }
 

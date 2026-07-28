@@ -13,4 +13,6 @@ namespace ActorManager
     bool EquipItem(RE::Actor* actor, RE::TESObjectARMO* armor);
 
     bool ProcessHairStubs(RE::Actor* actor, const RE::BGSObjectInstance* armor, bool isUnequipEvent);
+
+    bool ProcessHairStubs(RE::Actor* actor);
 }

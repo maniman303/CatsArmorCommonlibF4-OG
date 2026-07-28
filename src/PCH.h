@@ -25,9 +25,9 @@ using namespace std::literals;
 
 namespace REX
 {
-    void ERROR(std::string message);
+    void ERROR(const std::string_view message);
 
-    void WARN(std::string message);
+    void WARN(const std::string_view message);
 
-    void INFO(std::string message);
+    void INFO(const std::string_view message);
 }
