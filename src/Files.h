@@ -18,6 +18,8 @@ namespace Files
 
 	bool VerifyCatsPlugin();
 
+	bool VerifyConflictPlugins();
+
 	std::vector<std::filesystem::directory_entry> GetPluginFiles(std::string path);
 
 	void PrepareDirectories();

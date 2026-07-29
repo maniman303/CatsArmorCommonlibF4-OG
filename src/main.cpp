@@ -78,6 +78,11 @@ void OnMessage(F4SE::MessagingInterface::Message* message)
 			return;
 		}
 
+		if (!Files::VerifyConflictPlugins())
+		{
+			return;
+		}
+
 		if (!Setup::Initialize())
 		{
 			REX::ERROR("Incomplete setup.");

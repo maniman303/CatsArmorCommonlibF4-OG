@@ -51,6 +51,20 @@ namespace Files
 		return true;
 	}
 
+	bool VerifyConflictPlugins()
+	{
+		auto dh = RE::TESDataHandler::GetSingleton();
+		auto indexOpt = dh->GetLoadedModIndex("ConcealedArmor.esp");
+
+		if (indexOpt.has_value() && indexOpt.value() > 0)
+		{
+			REX::ERROR("CATS armor is not compatible with Concealed Armors!");
+			return false;
+		}
+
+		return true;
+	}
+
 	std::vector<std::filesystem::directory_entry> GetPluginFiles(std::string path)
 	{
 		std::vector<std::filesystem::directory_entry> result;

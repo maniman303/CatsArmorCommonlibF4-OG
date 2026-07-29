@@ -11,45 +11,12 @@
 
 namespace HeadgearProcessor
 {
-	std::unordered_set<RE::TESObjectARMA*> addonsToHeadband;
+	std::unordered_set<RE::TESObjectARMA*> excludedAddons;
+	std::unordered_set<RE::TESObjectARMA*> modifiedAddonsHeadband;
+	std::unordered_set<RE::TESObjectARMA*> modifiedAddonsNewSlot;
+	std::unordered_set<RE::TESObjectARMA*> modifiedAddonsMouth;
 
-	int CountUniqueAddons(RE::TESObjectARMO* armor, uint16_t index, uint32_t slot = 0)
-	{
-		int res = 0;
-		uint32_t slotsTaken = 0;
-
-		for (const auto& arma : armor->modelArray)
-		{
-			if (arma.index != index)
-			{
-				continue;
-			}
-
-			auto addon = arma.armorAddon;
-			if (addon == NULL)
-			{
-				continue;
-			}
-
-			auto addonSlots = addon->bipedModelData.bipedObjectSlots;
-			if (slot != 0 && (addonSlots & slot) == 0)
-			{
-				continue;
-			}
-
-			if ((addonSlots & slotsTaken) != 0)
-			{
-				continue;
-			}
-
-			slotsTaken = slotsTaken | addonSlots;
-			res++;
-		}
-
-		return res;
-	}
-
-	void ProcessAddonsToHeadband()
+	void FixUpHairOnlyArmorSlots(const Setup::TypedSetup& setup)
 	{
 		auto dataHandler = RE::TESDataHandler::GetSingleton();
 		if (dataHandler == NULL)
@@ -57,9 +24,13 @@ namespace HeadgearProcessor
 			return;
 		}
 
-		uint32_t headbandSlot = 1 << 16;
+		uint32_t hairTopMask = 1 << 0;
+		uint32_t hairLongMask = 1 << 1;
 
-		std::unordered_map<RE::TESObjectARMA*, bool> processableAddons;
+		uint32_t headbandMask = 1 << 16;
+
+		uint32_t count = 0;
+
 		const auto& armorArray = dataHandler->GetFormArray<RE::TESObjectARMO>();
     	for (auto* armor : armorArray)
 		{
@@ -68,6 +39,77 @@ namespace HeadgearProcessor
 				continue;
 			}
 
+			auto armorRace = armor->GetFormRace();
+			if (armorRace == NULL)
+			{
+				continue;
+			}
+
+			if ((armor->formFlags & 4) != 0)
+			{
+				continue;
+			}
+
+			auto armorSlots = armor->bipedModelData.bipedObjectSlots;
+			if (armorSlots != (hairTopMask | hairLongMask) && armorSlots != hairTopMask && armorSlots != hairLongMask)
+			{
+				continue;
+			}
+
+			if (armor->HasKeyword(setup.keyword))
+			{
+				continue;
+			}
+			
+			armorSlots |= headbandMask;
+			armor->bipedModelData.bipedObjectSlots = armorSlots;
+
+			count++;
+		}
+
+		REX::INFO(std::format("Adjusted {0} hair-only headgears.", count));
+
+		auto addonsCount = modifiedAddonsHeadband.size() + modifiedAddonsNewSlot.size() + modifiedAddonsMouth.size();
+		REX::INFO(std::format("Adjusted {0} headgear addons.",  addonsCount));
+	}
+
+	void ScanHeadgearAddons(const Setup::TypedSetup& setup)
+	{
+		excludedAddons.clear();
+
+		auto dataHandler = RE::TESDataHandler::GetSingleton();
+		if (dataHandler == NULL)
+		{
+			return;
+		}
+
+		uint32_t headgearMask = (1 << 0) | (1 << 16) | (1 << 1) | (1 << 28) | (1 << 18) | (1 << 19);
+		uint32_t newMask = 1 << (setup.bipedIndex - 30);
+
+		const auto& armorArray = dataHandler->GetFormArray<RE::TESObjectARMO>();
+    	for (auto* armor : armorArray)
+		{
+			if (armor == NULL)
+			{
+				continue;
+			}
+
+			if ((armor->bipedModelData.bipedObjectSlots & headgearMask) == 0)
+			{
+				continue;
+			}
+
+			auto armorRace = armor->GetFormRace();
+			if (armorRace == NULL)
+			{
+				continue;
+			}
+
+			uint8_t headband = 0;
+			uint8_t newSlot = 0;
+			uint8_t mouth = 0;
+
+			uint32_t armorSlots = 0;
 			for (const auto& arma : armor->modelArray)
 			{
 				auto addon = arma.armorAddon;
@@ -76,235 +118,86 @@ namespace HeadgearProcessor
 					continue;
 				}
 
-				if (!addonsToHeadband.contains(addon))
+				if (addon->GetFormRace() != armorRace)
+				{
+					bool skip = true;
+					for (auto race : addon->additionalRaces)
+					{
+						if (race == armorRace)
+						{
+							skip = false;
+							break;
+						}
+					}
+
+					if (skip)
+					{
+						continue;
+					}
+				}
+
+				auto slots = addon->bipedModelData.bipedObjectSlots;
+				if ((armorSlots & slots) != 0)
 				{
 					continue;
 				}
 
-				auto uniqueAddonsNo = CountUniqueAddons(armor, arma.index, headbandSlot);
-				if (processableAddons.contains(addon))
+				armorSlots |= slots;
+
+				if (slots & (1 << 16))
 				{
-					if (uniqueAddonsNo > 0)
-					{
-						processableAddons[addon] = true;
-					}
+					headband++;
 				}
-				else
+				else if (slots & newMask)
 				{
-					processableAddons[addon] = (uniqueAddonsNo > 0);
+					newSlot++;
+				}
+				else if (slots & (1 << 19))
+				{
+					mouth++;
+				}
+				else if ((slots & (1 << 0)) && (slots & (1 << 1)))
+				{
+					newSlot++;
+				}
+				else if (slots & (1 << 0))
+				{
+					headband++;
+				}
+				else if (slots & (1 << 1))
+				{
+					newSlot++;
+				}
+				else if (slots & (1 << 18))
+				{
+					mouth++;
+				}
+			}
+
+			if (headband <= 1 && newSlot <= 1 && mouth <= 1)
+			{
+				continue;
+			}
+
+			REX::WARN(std::format("Headgear [0x{0:08X}] '{1}' contains incompatible addons.", armor->GetFormID(), armor->GetFullName()));
+			// REX::WARN(std::format("Headband: {0}, Slot: {1}, Mouth: {2}.", headband, newSlot, mouth));
+			for (const auto& arma : armor->modelArray)
+			{
+				auto addon = arma.armorAddon;
+				if (addon == NULL)
+				{
+					continue;
+				}
+
+				if (!excludedAddons.contains(addon))
+				{
+					excludedAddons.emplace(addon);
 				}
 			}
 		}
-
-		int adjusted = 0;
-
-		for (const auto& pair : processableAddons)
-		{
-			auto addon = pair.first;
-			if (addon == NULL)
-			{
-				continue;
-			}
-
-			if (pair.second)
-			{
-				REX::WARN(std::format("Could not add headband slot to armor addon 0x{:08X}.", addon->GetFormID()));
-				continue;
-			}
-
-			auto addonSlots = addon->bipedModelData.bipedObjectSlots;
-			addonSlots = addonSlots | headbandSlot;
-			addon->bipedModelData.bipedObjectSlots = addonSlots;
-
-			adjusted++;
-		}
-
-		REX::INFO(std::format("Adjusted {0} armor addons without headband slot.", adjusted));
 	}
 
-	bool AdjustHairOnlyHeadgear(RE::TESObjectARMO *armor, Setup::TypedSetup setup)
-	{
-		if (armor == NULL)
-		{
-			return false;
-		}
-
-		uint32_t hairTopMask = 1;
-		uint32_t hairLongMask = 2;
-		uint32_t mask = hairTopMask | hairLongMask;
-
-		uint32_t newSlot = 1 << 16;
-
-		if ((armor->formFlags & 4) != 0)
-		{
-			return false;
-		}
-
-		auto bipedSlots = armor->bipedModelData.bipedObjectSlots;
-		if ((bipedSlots & ~mask) != 0 || bipedSlots == 0)
-		{
-			return false;
-		}
-
-		if (armor->HasKeyword(setup.keyword))
-		{
-			return false;
-		}
-
-		bipedSlots = bipedSlots | newSlot;
-		armor->bipedModelData.bipedObjectSlots = bipedSlots;
-
-		return true;
-	}
-
-	void ProcessHairOnlyHeadgear(Setup::TypedSetup setup)
-	{
-		auto dataHandler = RE::TESDataHandler::GetSingleton();
-		if (dataHandler == NULL)
-		{
-			return;
-		}
-
-		int adjusted = 0;
-
-		const auto& armorArray = dataHandler->GetFormArray<RE::TESObjectARMO>();
-    	for (auto* armor : armorArray)
-		{
-			if (AdjustHairOnlyHeadgear(armor, setup))
-			{
-				adjusted++;
-
-				// REX::INFO("Wrong headgear [{}]", armor->GetFullName());
-			}
-		}
-
-		REX::INFO(std::format("Adjusted {0} headgears.", adjusted));
-	}
-
-	bool SetArmorAddonBipedIndexes(RE::TESObjectARMO* armor, uint32_t newSlot)
-	{
-		bool res = false;
-
-		if (armor == NULL)
-		{
-			return res;
-		}
-
-		uint32_t hairTopMask = 1;
-		uint32_t hairLongMask = 2;
-		uint32_t hairBeardMask = 1 << 18;
-		uint32_t mask = hairTopMask | hairLongMask | hairBeardMask | newSlot;
-
-		uint32_t slotsTaken = 0;
-
-		for (auto& arma : armor->modelArray)
-		{
-			auto addon = arma.armorAddon;
-			if (addon == NULL)
-			{
-				continue;
-			}
-
-			auto addonSlots = addon->bipedModelData.bipedObjectSlots;
-			if ((addonSlots & slotsTaken) != 0)
-			{
-				continue;
-			}
-
-			slotsTaken = slotsTaken | addonSlots;
-
-			if ((addonSlots & ~mask) != 0)
-			{
-				continue;
-			}
-
-			addonSlots = addonSlots | newSlot;
-			addon->bipedModelData.bipedObjectSlots = addonSlots;
-
-			if (!addonsToHeadband.contains(addon))
-			{
-				addonsToHeadband.insert(addon);
-			}
-
-			res = true;
-		}
-
-		return res;
-	}
-
-	std::vector<RE::BGSKeyword*> SetArmorBipedIndexes(RE::TESObjectARMO* armor, Setup::TypedSetup setup)
-	{
-		std::vector<RE::BGSKeyword*> res;
-
-		uint32_t hairTopMask = 1;
-		uint32_t hairLongMask = 2;
-		uint32_t hairBeardMask = 1 << 18;
-		uint32_t headbandMask = 1 << 16;
-
-		// REX::INFO("Processing [{}].", armor->GetFullName());
-
-		auto bipedSlots = armor->bipedModelData.bipedObjectSlots;
-
-		if (bipedSlots & hairTopMask)
-		{
-			res.push_back(setup.keywordHairTop);
-		}
-
-		if (bipedSlots & hairLongMask)
-		{
-			res.push_back(setup.keywordHairLong);
-		}
-
-		if (bipedSlots & hairBeardMask)
-		{
-			res.push_back(setup.keywordHairBeard);
-		}
-
-		bipedSlots = bipedSlots & ~hairTopMask;
-		bipedSlots = bipedSlots & ~hairLongMask;
-		bipedSlots = bipedSlots & ~hairBeardMask;
-
-		bipedSlots = bipedSlots | headbandMask;
-
-		uint32_t newAddonSlot = 1 << (setup.bipedIndex - 30);
-
-		if (SetArmorAddonBipedIndexes(armor, newAddonSlot) && (bipedSlots & newAddonSlot) == 0)
-		{
-			bipedSlots = bipedSlots | newAddonSlot;
-
-			REX::INFO(std::format("Adjusted slots for [{0}].", armor->GetFullName()));
-		}
-
-		armor->bipedModelData.bipedObjectSlots = bipedSlots;
-
-		return res;
-	}
-
-	void TrySetBaseIndex(RE::TESObjectARMO* armor)
-	{
-		if (armor == NULL) {
-			return;
-		}
-
-		if (armor->armorData.index != 0) {
-			return;
-		}
-
-		bool updateIndex = false;
-
-		for (auto& model : armor->modelArray) {
-			if (model.index == 0) {
-				updateIndex = true;
-				model.index = 1;
-			}
-		}
-
-		if (updateIndex) {
-			armor->armorData.index = 1;
-		}
-	}
-
-	void AddArmorAddon(RE::TESObjectARMO* armor, Setup::TypedSetup setup)
+	void AddArmorAddon(RE::TESObjectARMO* armor, const Setup::TypedSetup& setup)
 	{
 		RE::TESObjectARMO::ArmorAddon addonEntry{};
 
@@ -332,23 +225,64 @@ namespace HeadgearProcessor
 		}
 	}
 
-	bool ValidateArmorAddons(RE::TESObjectARMO* armor, Setup::TypedSetup setup)
+	void TrySetBaseIndex(RE::TESObjectARMO* armor)
 	{
-		auto armorSlots = armor->bipedModelData.bipedObjectSlots;
+		if (armor == NULL) {
+			return;
+		}
 
-		uint32_t hairTopMask = 1;
-		uint32_t hairLongMask = 2;
+		if (armor->armorData.index != 0) {
+			return;
+		}
+
+		bool updateIndex = false;
+
+		for (auto& model : armor->modelArray) {
+			if (model.index == 0) {
+				updateIndex = true;
+				model.index = 1;
+			}
+		}
+
+		if (updateIndex) {
+			armor->armorData.index = 1;
+		}
+	}
+
+	std::vector<RE::BGSKeyword*> SetArmorBipedIndexes(RE::TESObjectARMO* armor, const Setup::TypedSetup& setup)
+	{
+		std::vector<RE::BGSKeyword*> res;
+
+		uint32_t hairTopMask = 1 << 0;
+		uint32_t hairLongMask = 1 << 1;
 		uint32_t hairBeardMask = 1 << 18;
-		uint32_t mask = hairTopMask | hairLongMask | hairBeardMask;
 
-		uint32_t extraMask = 1 << (setup.bipedIndex - 30);
+		uint32_t headbandMask = 1 << 16;
+		uint32_t newMask = 1 << (setup.bipedIndex - 30);
+		uint32_t mouthMask = 1 << 19;
 
-		int addonsWithOnlyHair = 0;
-		int addonsWithExtra = 0;
+		auto bipedSlots = armor->bipedModelData.bipedObjectSlots;
 
-		uint32_t slotsTaken = 0;
+		if (bipedSlots & hairTopMask)
+		{
+			res.push_back(setup.keywordHairTop);
+		}
 
-		for (auto& arma : armor->modelArray)
+		if (bipedSlots & hairLongMask)
+		{
+			res.push_back(setup.keywordHairLong);
+		}
+
+		if (bipedSlots & hairBeardMask)
+		{
+			res.push_back(setup.keywordHairBeard);
+		}
+
+		bipedSlots = bipedSlots & ~hairTopMask;
+		bipedSlots = bipedSlots & ~hairLongMask;
+		bipedSlots = bipedSlots & ~hairBeardMask;
+
+		for (const auto& arma : armor->modelArray)
 		{
 			auto addon = arma.armorAddon;
 			if (addon == NULL)
@@ -356,42 +290,165 @@ namespace HeadgearProcessor
 				continue;
 			}
 
-			auto addonSlots = addon->bipedModelData.bipedObjectSlots;
-			if ((addonSlots & armorSlots) == 0 || (addonSlots & slotsTaken) != 0)
+			if (modifiedAddonsHeadband.contains(addon))
+			{
+				bipedSlots |= headbandMask;
+			}
+
+			if (modifiedAddonsNewSlot.contains(addon))
+			{
+				bipedSlots |= newMask;
+			}
+
+			if (modifiedAddonsMouth.contains(addon))
+			{
+				bipedSlots |= mouthMask;
+			}
+		}
+
+		armor->bipedModelData.bipedObjectSlots = bipedSlots;
+
+		return res;
+	}
+
+	void ProcessArmorAddons(RE::TESObjectARMO* armor, const Setup::TypedSetup& setup)
+	{
+		if (armor == NULL)
+		{
+			return;
+		}
+
+		auto armorRace = armor->GetFormRace();
+		if (armorRace == NULL)
+		{
+			return;
+		}
+
+		uint32_t headbandMask = 1 << 16;
+		uint32_t newMask = 1 << (setup.bipedIndex - 30);
+		uint32_t mouthMask = 1 << 19;
+		uint32_t hairTopMask = 1 << 0;
+		uint32_t hairLongMask = 1 << 1;
+		uint32_t beardMask = 1 << 18;
+
+		uint32_t armorSlots = 0;
+		for (const auto& arma : armor->modelArray)
+		{
+			auto addon = arma.armorAddon;
+			if (addon == NULL)
 			{
 				continue;
 			}
 
-			slotsTaken = slotsTaken | addonSlots;
-
-			if ((addonSlots & ~mask) == 0)
+			if (addon->GetFormRace() != armorRace)
 			{
-				addonsWithOnlyHair++;
+				bool skip = true;
+				for (auto race : addon->additionalRaces)
+				{
+					if (race == armorRace)
+					{
+						skip = false;
+						break;
+					}
+				}
+
+				if (skip)
+				{
+					continue;
+				}
 			}
 
-			if ((addonSlots & extraMask) != 0)
+			auto slots = addon->bipedModelData.bipedObjectSlots;
+			if ((armorSlots & slots) != 0)
 			{
-				addonsWithExtra++;
+				// REX::INFO("Skip addon with reused slots.");
+				continue;
+			}
+
+			armorSlots |= slots;
+
+			if ((slots & (hairTopMask | hairLongMask | beardMask)) == 0)
+			{
+				// REX::INFO("Skip addon without hair.");
+				continue;
+			}
+
+			if (slots & headbandMask)
+			{
+				// REX::INFO("Headband current.");
+				if (!modifiedAddonsHeadband.contains(addon))
+				{
+					modifiedAddonsHeadband.emplace(addon);
+				}
+			}
+			else if (slots & newMask)
+			{
+				// REX::INFO("Slot current.");
+				if (!modifiedAddonsNewSlot.contains(addon))
+				{
+					modifiedAddonsNewSlot.emplace(addon);
+				}
+			}
+			else if (slots & mouthMask)
+			{
+				// REX::INFO("Mouth current.");
+				if (!modifiedAddonsMouth.contains(addon))
+				{
+					modifiedAddonsMouth.emplace(addon);
+				}
+			}
+			else if ((slots & hairTopMask) && (slots & hairLongMask))
+			{
+				// REX::INFO("Combo slot new.");
+				slots |= newMask;
+				if (!modifiedAddonsNewSlot.contains(addon))
+				{
+					modifiedAddonsNewSlot.emplace(addon);
+				}
+			}
+			else if (slots & hairTopMask)
+			{
+				// REX::INFO("Headband new.");
+				slots |= headbandMask;
+				if (!modifiedAddonsHeadband.contains(addon))
+				{
+					modifiedAddonsHeadband.emplace(addon);
+				}
+			}
+			else if (slots & hairLongMask)
+			{
+				// REX::INFO("Slot new.");
+				slots |= newMask;
+				if (!modifiedAddonsNewSlot.contains(addon))
+				{
+					modifiedAddonsNewSlot.emplace(addon);
+				}
+			}
+			else if (slots & beardMask)
+			{
+				// REX::INFO("Mouth new.");
+				slots |= mouthMask;
+				if (!modifiedAddonsMouth.contains(addon))
+				{
+					modifiedAddonsMouth.emplace(addon);
+				}
+			}
+
+			if (slots != addon->bipedModelData.bipedObjectSlots)
+			{
+				// REX::INFO("Update addon slots.");
+				addon->bipedModelData.bipedObjectSlots = slots;
 			}
 		}
-
-		if (addonsWithOnlyHair > 1)
-		{
-			REX::ERROR(std::format("Headgear [{0}] has too many hair only armor addons.", armor->GetFullName()));
-			return false;
-		}
-
-		if (addonsWithOnlyHair > 0 && addonsWithExtra > 0)
-		{
-			REX::ERROR(std::format("Headgear [{0}] has incompatible armor addon setup.", armor->GetFullName()));
-			return false;
-		}
-
-		return true;
 	}
 
-	bool ValidateHeadgear(RE::TESObjectARMO* armor, Setup::TypedSetup setup)
+	bool ValidateHeadgear(RE::TESObjectARMO* armor)
 	{
+		if (armor == NULL)
+		{
+			return false;
+		}
+
 		uint32_t hairTopMask = 1;
 		uint32_t hairLongMask = 2;
 		uint32_t mask = hairTopMask | hairLongMask;
@@ -400,20 +457,40 @@ namespace HeadgearProcessor
 
 		if ((bipedSlots & mask) <= 0)
 		{
-			// REX::WARN(std::format("Headgear [{0}] with id 0x{1:X} does not take hair slots.", armor->GetFullName(), armor->GetFormID()));
 			return false;
 		}
 
 		if (ExclusionManager::Contains(armor))
 		{
-			REX::INFO(std::format("Excluded [{0}].", armor->GetFullName()));
+			REX::WARN(std::format("Headgear [0x{0:08X}] '{1}' is excluded.", armor->GetFormID(), armor->GetFullName()));
 			return false;
 		}
 
-		return ValidateArmorAddons(armor, setup);
+		auto armorRace = armor->GetFormRace();
+		if (armorRace == NULL)
+		{
+			return false;
+		}
+
+		for (const auto& arma : armor->modelArray)
+		{
+			auto addon = arma.armorAddon;
+			if (addon == NULL)
+			{
+				continue;
+			}
+
+			if (excludedAddons.contains(addon))
+			{
+				REX::ERROR(std::format("Headgear [0x{0:08X}] '{1}' contains excluded addon.", armor->GetFormID(), armor->GetFullName()));
+				return false;
+			}
+		}
+
+		return true;
 	}
 
-	void ProcessHeadgearForm(RE::TESForm* form, Setup::TypedSetup setup)
+	void ProcessHeadgearForm(RE::TESForm* form, const Setup::TypedSetup& setup)
 	{
 		if (form == NULL)
 		{
@@ -426,14 +503,16 @@ namespace HeadgearProcessor
 		}
 
 		auto armor = form->As<RE::TESObjectARMO>();
-
-		if (!ValidateHeadgear(armor, setup))
+		if (!ValidateHeadgear(armor))
 		{
 			return;
 		}
 
-		auto keywordsToAdd = SetArmorBipedIndexes(armor, setup);
+		// REX::INFO(std::format("Processing headgear [0x{0:08X}] '{1}'", armor->GetFormID(), armor->GetFullName()));
 
+		ProcessArmorAddons(armor, setup);
+
+		auto keywordsToAdd = SetArmorBipedIndexes(armor, setup);
 		for (auto& keyword : keywordsToAdd)
 		{
 			armor->AddKeyword(keyword);
@@ -479,19 +558,19 @@ namespace HeadgearProcessor
 			return;
 		}
 
-		auto setupForms = Setup::GetForms(type);
-		if (setupForms.isEmpty)
+		auto setup = Setup::GetForms(type);
+		if (setup.isEmpty)
 		{
 			REX::ERROR(std::format("Missing setup for type: {0}.", type));
 			return;
 		}
 
-		auto keyword = setupForms.keyword;
-		auto attachSlot = setupForms.attachSlot;
-		auto addon = setupForms.armorAddon;
-		auto hairTopKywd = setupForms.keywordHairTop;
-		auto hairLongKywd = setupForms.keywordHairLong;
-		auto hairBearKywd = setupForms.keywordHairBeard;
+		auto keyword = setup.keyword;
+		auto attachSlot = setup.attachSlot;
+		auto addon = setup.armorAddon;
+		auto hairTopKywd = setup.keywordHairTop;
+		auto hairLongKywd = setup.keywordHairLong;
+		auto hairBearKywd = setup.keywordHairBeard;
 
 		auto formIds = FormUtil::GetFormIdsFromJson(modJson["armorList"]);
 		auto forms = FormUtil::GetFormsFromList(formIds);
@@ -509,7 +588,7 @@ namespace HeadgearProcessor
 
 		for (auto& form : forms)
 		{
-			ProcessHeadgearForm(form, setupForms);
+			ProcessHeadgearForm(form, setup);
 
 			count++;
 		}
@@ -519,8 +598,6 @@ namespace HeadgearProcessor
 
 	void ProcessHeadgearFiles()
 	{
-		addonsToHeadband.clear();
-
 		auto setup = Setup::GetForms("headgear");
 		if (setup.isEmpty || !setup.isEnabled)
 		{
@@ -528,14 +605,19 @@ namespace HeadgearProcessor
 			return;
 		}
 
+		ScanHeadgearAddons(setup);
+
 		auto headgearFiles = Files::GetPluginFiles("Armor");
 		for (auto& entry : headgearFiles)
 		{
 			ProcessHeadgearEntry(entry);
 		}
 
-		ProcessAddonsToHeadband();
+		FixUpHairOnlyArmorSlots(setup);
 
-		ProcessHairOnlyHeadgear(setup);
+		excludedAddons.clear();
+		modifiedAddonsHeadband.clear();
+		modifiedAddonsNewSlot.clear();
+		modifiedAddonsMouth.clear();
 	}
 }
