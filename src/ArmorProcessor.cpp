@@ -124,10 +124,6 @@ namespace ArmorProcessor
 		}
 
 		auto type = modJson["type"].asString();
-		if (type == "headgear")
-		{
-			return;
-		}
 
 		auto setupForms = Setup::GetForms(type);
 

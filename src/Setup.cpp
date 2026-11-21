@@ -8,8 +8,6 @@
 namespace Setup
 {
 	std::map<int, uint16_t> WorkaroundMap;
-	RE::SpellItem* Spell = NULL;
-	RE::BGSPerk* Perk = NULL;
 	RE::BGSKeyword* ActorKywd = NULL;
 	bool IsInitializedFlag = false;
 
@@ -33,22 +31,13 @@ namespace Setup
 		return 0;
 	}
 
-	TypedSetup::TypedSetup(int bi, RE::BGSKeyword* kw, RE::BGSKeyword* kwH, RE::BGSKeyword* as, RE::TESObjectARMA* aa,
-		RE::BGSKeyword* kwHl, RE::BGSKeyword* kwHt, RE::BGSKeyword* kwHb, RE::TESObjectARMO* aHl, RE::TESObjectARMO* aHt, RE::TESObjectARMO* aHb)
+	TypedSetup::TypedSetup(RE::BGSKeyword* kw, RE::BGSKeyword* kwH, RE::BGSKeyword* as, RE::TESObjectARMA* aa)
 	{
 		keyword = kw;
 		keywordHidden = kwH;
 		attachSlot = as;
 		armorAddon = aa;
 		isEmpty = false;
-		isEnabled = true;
-		bipedIndex = bi,
-		keywordHairLong = kwHl;
-		keywordHairTop = kwHt;
-		keywordHairBeard = kwHb;
-		armorHairLong = aHl;
-		armorHairTop = aHt;
-		armorHairBeard = aHb;
 	}
 
 	TypedSetup::TypedSetup(RE::BGSKeyword* kw, RE::BGSKeyword* as, RE::TESObjectARMA* aa)
@@ -58,14 +47,6 @@ namespace Setup
 		attachSlot = as;
 		armorAddon = aa;
 		isEmpty = false;
-		isEnabled = true;
-		bipedIndex = DefaultBipedIndex;
-		keywordHairLong = NULL;
-		keywordHairTop = NULL;
-		keywordHairBeard = NULL;
-		armorHairLong = NULL;
-		armorHairTop = NULL;
-		armorHairBeard = NULL;
 	}
 
 	TypedSetup::TypedSetup()
@@ -75,14 +56,6 @@ namespace Setup
 		attachSlot = NULL;
 		armorAddon = NULL;
 		isEmpty = true;
-		isEnabled = false;
-		bipedIndex = DefaultBipedIndex;
-		keywordHairLong = NULL;
-		keywordHairTop = NULL;
-		keywordHairBeard = NULL;
-		armorHairLong = NULL;
-		armorHairTop = NULL;
-		armorHairBeard = NULL;
 	}
 
 	std::map<std::string, TypedSetup> SetupMap;
@@ -96,16 +69,6 @@ namespace Setup
 		}
 
 		return TypedSetup();
-	}
-
-	RE::SpellItem* GetSpell()
-	{
-		return Spell;
-	}
-
-	RE::BGSPerk* GetPerk()
-	{
-		return Perk;
 	}
 
 	RE::BGSKeyword* GetActorKeyword()
@@ -129,63 +92,8 @@ namespace Setup
 			return false;
 		}
 
-		auto attachSlotId = FormUtil::GetFormIdFromJson(typedSetup["attachSlotToAdd"]);
-		auto attachSlot = FormUtil::GetFormAs<RE::BGSKeyword>(attachSlotId);
-		if (attachSlot == NULL)
-		{
-			return false;
-		}
-
-		auto armorAddonId = FormUtil::GetFormIdFromJson(typedSetup["armorAddon"]);
-		auto armorAddon = FormUtil::GetFormAs<RE::TESObjectARMA>(armorAddonId);
-		if (armorAddon == NULL)
-		{
-			return false;
-		}
-
-		SetupMap[type] = TypedSetup(keyword->As<RE::BGSKeyword>(), attachSlot->As<RE::BGSKeyword>(), armorAddon->As<RE::TESObjectARMA>());
-
-		return true;
-	}
-
-	bool LoadHeadgearSetup(Json::Value setup)
-	{
-		auto typedSetup = setup["headgear"];
-
-		if (typedSetup.empty() || !typedSetup.isObject())
-		{
-			REX::WARN("Json setup is empty.");
-			return false;
-		}
-
-		auto enabledSetup = typedSetup["enabled"];
-		if (!enabledSetup.empty() && enabledSetup.isBool() && !enabledSetup.asBool())
-		{
-			REX::WARN("Json setup is disabled.");
-			return false;
-		}
-
-		int bipedIndex = DefaultBipedIndex;
-		auto bipedIndexSetup = typedSetup["bipedIndex"];
-		if (!bipedIndexSetup.empty() && bipedIndexSetup.isInt())
-		{
-			bipedIndex = bipedIndexSetup.asInt();
-			REX::WARN(std::format("Custom biped index set to: {}.", bipedIndex));
-		}
-
-		auto keywordId = FormUtil::GetFormIdFromJson(typedSetup["keywordToAdd"]);
-		auto keyword = FormUtil::GetFormAs<RE::BGSKeyword>(keywordId);
-		if (keyword == NULL)
-		{
-			return false;
-		}
-
 		auto keywordHiddenId = FormUtil::GetFormIdFromJson(typedSetup["keywordHidden"]);
 		auto keywordHidden = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHiddenId);
-		if (keywordHidden == NULL)
-		{
-			return false;
-		}
 
 		auto attachSlotId = FormUtil::GetFormIdFromJson(typedSetup["attachSlotToAdd"]);
 		auto attachSlot = FormUtil::GetFormAs<RE::BGSKeyword>(attachSlotId);
@@ -201,83 +109,7 @@ namespace Setup
 			return false;
 		}
 
-		auto keywordHairLongId = FormUtil::GetFormIdFromJson(typedSetup["keywordHairLong"]);
-		auto keywordHairLong = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHairLongId);
-		if (keywordHairLong == NULL)
-		{
-			return false;
-		}
-
-		auto keywordHairTopId = FormUtil::GetFormIdFromJson(typedSetup["keywordHairTop"]);
-		auto keywordHairTop = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHairTopId);
-		if (keywordHairTop == NULL)
-		{
-			return false;
-		}
-
-		auto keywordHairBeardId = FormUtil::GetFormIdFromJson(typedSetup["keywordHairBeard"]);
-		auto keywordHairBeard = FormUtil::GetFormAs<RE::BGSKeyword>(keywordHairBeardId);
-		if (keywordHairBeard == NULL)
-		{
-			return false;
-		}
-
-		auto armorHairLongId = FormUtil::GetFormIdFromJson(typedSetup["armorHairLong"]);
-		auto armorHairLong = FormUtil::GetFormAs<RE::TESObjectARMO>(armorHairLongId);
-		if (armorHairLong == NULL)
-		{
-			return false;
-		}
-
-		auto armorHairTopId = FormUtil::GetFormIdFromJson(typedSetup["armorHairTop"]);
-		auto armorHairTop = FormUtil::GetFormAs<RE::TESObjectARMO>(armorHairTopId);
-		if (armorHairTop == NULL)
-		{
-			return false;
-		}
-
-		auto armorHairBeardId = FormUtil::GetFormIdFromJson(typedSetup["armorHairBeard"]);
-		auto armorHairBeard = FormUtil::GetFormAs<RE::TESObjectARMO>(armorHairBeardId);
-		if (armorHairBeard == NULL)
-		{
-			return false;
-		}
-
-		SetupMap["headgear"] = TypedSetup(bipedIndex, keyword->As<RE::BGSKeyword>(), keywordHidden->As<RE::BGSKeyword>(), attachSlot->As<RE::BGSKeyword>(), armorAddon->As<RE::TESObjectARMA>(),
-			keywordHairLong->As<RE::BGSKeyword>(), keywordHairTop->As<RE::BGSKeyword>(), keywordHairBeard->As<RE::BGSKeyword>(),
-			armorHairLong->As<RE::TESObjectARMO>(), armorHairTop->As<RE::TESObjectARMO>(), armorHairBeard->As<RE::TESObjectARMO>());
-
-		return true;
-	}
-
-	bool LoadSpellAndPerk(Json::Value setup)
-	{
-		Spell = NULL;
-		Perk = NULL;
-
-		auto magicSetup = setup["magic"];
-
-		if (magicSetup.empty()) {
-			REX::WARN("Magic setup is missing.");
-			return false;
-		}
-
-		auto spellId = FormUtil::GetFormIdFromJson(magicSetup["spell"]);
-		auto spell = FormUtil::GetFormAs<RE::SpellItem>(spellId);
-		if (spell == NULL) {
-			REX::WARN("Magic setup is missing spell.");
-			return false;
-		}
-
-		auto perkId = FormUtil::GetFormIdFromJson(magicSetup["perk"]);
-		auto perk = FormUtil::GetFormAs<RE::BGSPerk>(perkId);
-		if (perk == NULL) {
-			REX::WARN("Magic setup is missing perk.");
-			return false;
-		}
-
-		Spell = spell->As<RE::SpellItem>();
-		Perk = perk->As<RE::BGSPerk>();
+		SetupMap[type] = TypedSetup(keyword, keywordHidden, attachSlot, armorAddon);
 
 		return true;
 	}
@@ -387,16 +219,6 @@ namespace Setup
 				continue;
 			}
 
-			if (key == "headgear")
-			{
-				if (!LoadHeadgearSetup(setupJson))
-				{
-					REX::WARN("Missing setup for headgear.");
-				}
-
-				continue;
-			}
-
 			// REX::INFO(std::format("Trying to load [{0}].", key));
 
 			if (!LoadTypedSetup(setupJson, key))
@@ -404,12 +226,6 @@ namespace Setup
 				REX::WARN(std::format("Invalid setup for [{0}].", key));
 				result = false;
 			}
-		}
-
-		if (!LoadSpellAndPerk(setupJson))
-		{
-			REX::WARN("Missing setup for spell and perk.");
-			result = false;
 		}
 
 		if (!LoadActorKeyword(setupJson))
