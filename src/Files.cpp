@@ -40,7 +40,7 @@ namespace Files
 		isFilePresent = false;
 
 		RE::TESDataHandler* dh = RE::TESDataHandler::GetSingleton();
-		auto modIndexOpt = dh->GetLoadedLightModIndex("Cats Armor.esl");
+		auto modIndexOpt = dh->GetLoadedLightModIndex("Cats Armor.esp");
 
 		if (!modIndexOpt.has_value()) {
 			return false;
