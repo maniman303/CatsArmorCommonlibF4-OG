@@ -4,12 +4,12 @@
 
 namespace HairHooks
 {
-	// FUN_14064E480 (RVA 0x64E480) is the engine function that applies the
+	// FUN_1405AE640 (RVA 0x5AE640) is the engine function that applies the
 	// hide/show decision to a hair, hair long or beard head part: it walks the
 	// head part geometry and toggles the subsegments tagged with 0x1E + slot.
-	// Its only caller is FUN_140506460, which runs from the equip update and the
-	// reference/head update, so the three calls below see every actor including
-	// the player, in both directions.
+	// Its only caller is the equip/head update function that contains the three
+	// calls below (around RVA 0x3FF000); it sees every actor including the
+	// player, in both directions.
 	//
 	// The thunk resolves the owning actor from the node's userData (walking the
 	// parent chain) and replaces the engine's hide flag with the value returned
@@ -17,12 +17,12 @@ namespace HairHooks
 	// is rendered; it receives the actor, so the decision can read the equipped
 	// item for the slot from a_actor->biped->object[slot].parent.object.
 	//
-	// FUN_140360540 is a second, independent hide path: the biped pass
-	// (FUN_14035E3B0) calls it to hide the hair/beard slots that share the worn
-	// headgear's ARMA. HeadPartHide intercepts it so ShouldHide stays the single
-	// source of truth.
+	// FUN_1401C6DE0 is a second, independent hide path: the biped pass
+	// (FUN_1401C3530) calls it (through FUN_1401C3900) to hide the hair/beard
+	// slots that share the worn headgear's ARMA. HeadPartHide intercepts it so
+	// ShouldHide stays the single source of truth.
 	//
-	// FUN_14064E570 is a third path for a head part's extraParts (hairline,
+	// FUN_1405AE730 is a third path for a head part's extraParts (hairline,
 	// etc.); it takes a { face node, slot, hide } context by pointer, so
 	// HeadPartExtra rewrites the hide flag in place before the original runs.
 	//
@@ -33,11 +33,12 @@ namespace HairHooks
 
 		static void thunk(RE::NiAVObject* a_node, std::int32_t a_slot, bool a_hide);
 
-		// The three FUN_14064E480 calls inside FUN_140506460: hair, hair long,
-		// beard. Each value is the RVA of the CALL instruction to redirect (AE).
-		static constexpr std::size_t kHookHairOffset{ 0x506733 };
-		static constexpr std::size_t kHookHairLongOffset{ 0x5067A3 };
-		static constexpr std::size_t kHookBeardOffset{ 0x506863 };
+		// The three FUN_1405AE640 calls inside the equip/head update caller:
+		// hair, hair long, beard. Each value is the RVA of the CALL instruction
+		// to redirect (OG 1.10.163).
+		static constexpr std::size_t kHookHairOffset{ 0x3FF058 };
+		static constexpr std::size_t kHookHairLongOffset{ 0x3FF0CE };
+		static constexpr std::size_t kHookBeardOffset{ 0x3FF19A };
 
 		// Resolved in Install() to the original function each call targeted.
 		static inline REL::Relocation<func_t> HookHair{};
@@ -51,15 +52,16 @@ namespace HairHooks
 
 		static void thunk(RE::NiAVObject* a_face, std::int32_t** a_slot);
 
-		// FUN_140360540 call inside FUN_14035E3B0. The value is the RVA of the
-		// CALL instruction to redirect (AE).
-		static constexpr std::size_t kHookOffset{ 0x35E796 };
+		// FUN_1401C6DE0 call inside FUN_1401C3900 (itself called by the biped
+		// pass FUN_1401C3530). The value is the RVA of the CALL instruction to
+		// redirect (OG 1.10.163).
+		static constexpr std::size_t kHookOffset{ 0x1C3983 };
 
 		// Resolved in Install() to the original function the call targeted.
 		static inline REL::Relocation<func_t> Hook{};
 	};
 
-	// Context FUN_14064E570 takes by pointer: the face node, the biped slot and
+	// Context FUN_1405AE730 takes by pointer: the face node, the biped slot and
 	// the hide flag it applies to the extra part's subsegments.
 	struct HeadPartContext
 	{
@@ -78,12 +80,12 @@ namespace HairHooks
 
 		static std::uintptr_t thunk(HeadPartContext* a_ctx, RE::BGSHeadPart* a_extraPart);
 
-		// The three FUN_14064E570 calls inside FUN_140506460: the extra parts
-		// (hairline, ...) of hair, hair long and beard. Each value is the RVA of
-		// the CALL instruction to redirect (AE).
-		static constexpr std::size_t kHookHairOffset{ 0x506768 };
-		static constexpr std::size_t kHookHairLongOffset{ 0x5067D8 };
-		static constexpr std::size_t kHookBeardOffset{ 0x506898 };
+		// The three FUN_1405AE730 calls inside the equip/head update caller: the
+		// extra parts (hairline, ...) of hair, hair long and beard. Each value is
+		// the RVA of the CALL instruction to redirect (OG 1.10.163).
+		static constexpr std::size_t kHookHairOffset{ 0x3FF098 };
+		static constexpr std::size_t kHookHairLongOffset{ 0x3FF10B };
+		static constexpr std::size_t kHookBeardOffset{ 0x3FF1D8 };
 
 		// Resolved in Install() to the original function each call targeted.
 		static inline REL::Relocation<func_t> HookHair{};
